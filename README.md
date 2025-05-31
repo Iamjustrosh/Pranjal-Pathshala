@@ -34,7 +34,7 @@ A modern, fully responsive React + Tailwind CSS website for **Pranjal Pathshala*
 ```
 pranjal-pathshala/
 ├── public/
-│   └── favicon.ico
+│   └── preview.png
 ├── src/
 │   ├── assets/          # Images, logos, icons
 │   ├── components/      # Reusable components (Navbar, Footer, Hero, etc.)

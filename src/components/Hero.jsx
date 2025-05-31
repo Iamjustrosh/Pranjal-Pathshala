@@ -1,6 +1,7 @@
 import React from 'react';
 import heroBag from '../assets/hero_bag.png';
 import heroImage from '../assets/hero.png';
+import { Link } from 'react-router-dom';
 
 const Hero = () => {
   return (
@@ -22,10 +23,11 @@ const Hero = () => {
           Pranjal Pathshala ek vishwasniya aur result-oriented coaching institute hai, jo students ke academic goals ko pura karne mein madad karta hai.
         </p>
 
-
+        <Link to="/admission" className="text-xl font-bold text-blue-600">
         <button className="mt-4 px-6 py-3 bg-[#ff924e] text-white text-lg font-semibold rounded-xl hover:bg-[#e38a53] transition duration-300">
           Start Today
         </button>
+        </Link>
         <p className="px-2">
           All Subjects | CBSE & State Board
         </p>

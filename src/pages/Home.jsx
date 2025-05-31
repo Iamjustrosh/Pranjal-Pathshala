@@ -7,6 +7,7 @@ import sandclock from '../assets/sand-clock.png'
 import goodies from '../assets/goodies.png'
 import getInTouch from '../assets/getInTouch.png'
 import Testimonial from '../components/Testimonial'
+import { Link } from 'react-router-dom'
 
 
 
@@ -50,9 +51,11 @@ const Home = () => {
             </div>
           </div>
           <div className="flex justify-center">
+            <Link to="/study-material">
             <button className="mt-4 px-6 py-3 text-center bg-[#ff924e] text-white text-lg font-semibold rounded-xl hover:bg-[#e38a53] transition duration-300">
               Get Study Material
             </button>
+            </Link>
           </div>
 
         </div>

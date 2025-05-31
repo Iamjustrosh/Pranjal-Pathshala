@@ -18,12 +18,11 @@ const Navbar = () => {
   return (
     <nav className="bg-white shadow-md relative top-0 left-0 w-full z-50 border-b-2 border-gray-400">
       <div className="w-full px-2 md:py-3 flex items-center justify-between">
-        {/* Logo */}
+  
         <Link to="/" className="text-xl font-bold text-blue-600">
           <img src={logo} alt="logo" className="w-20 h-20" />
         </Link>
 
-        {/* Hamburger for mobile */}
         <div className="md:hidden">
           <button
             onClick={toggleMenu}
@@ -36,7 +35,6 @@ const Navbar = () => {
           </button>
         </div>
 
-        {/* Links */}
         <div
           className={`
             ${isOpen ? "block" : "hidden"} 

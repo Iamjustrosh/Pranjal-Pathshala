@@ -15,9 +15,7 @@ const Home = () => {
     <>
       <div className='px-5'>
         <Hero />
-        <div className="section-2 mb-4">
-          <img src={goodies} alt="" className='w-full'/>
-        </div>
+
         <div className="section-3 relative ">
           <h1 className='text-5xl poppins-bold'>Simplified <span className='text-[#ff924e]'>Learning</span> <br /> from Basics to <span className='text-[#ff924e]'>Brilliance</span></h1>
 
@@ -57,6 +55,9 @@ const Home = () => {
             </button>
           </div>
 
+        </div>
+        <div className="section-2 mb-4 mt-4">
+          <img src={goodies} alt="" className='w-full'/>
         </div>
         <div className="section-4">
           <div className="heading-section-3 mt-4">

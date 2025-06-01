@@ -13,6 +13,7 @@ const Navbar = () => {
     { name: "Quiz", path: "/quiz" },
     { name: "Study Material", path: "/study-material" },
     { name: "Contact Us", path: "/contact" },
+    { name: (<><i className="ri-admin-line mr-1"></i></>), path: "/login" },
   ];
 
   return (

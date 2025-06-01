@@ -12,7 +12,7 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
       manifest: {
         name: 'Pranjal Pathshala',
-        short_name: 'PP',
+        short_name: 'Pranjal Pathshala',
         description: 'A simple platform for study materials and admissions.',
         theme_color: '#ffffff',
         background_color: '#ffffff',

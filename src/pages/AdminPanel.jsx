@@ -1,8 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { auth } from '../firebase';
-import { useNavigate } from 'react-router-dom';
-import StudyMaterialForm from '../components/StudyMaterialForm';
-import LiveQuizForm from '../components/LiveQuizForm';
+import React from 'react'
 
 const AdminPanel = () => {
   const navigate = useNavigate();

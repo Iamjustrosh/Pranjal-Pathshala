@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { db } from '../firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
 const LiveQuizForm = () => {
   const [link, setLink] = useState('');
@@ -12,7 +12,7 @@ const LiveQuizForm = () => {
     const fetchLink = async () => {
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        setLink(docSnap.data().formLink);
+        setLink(docSnap.data().formLink || '');
       }
     };
     fetchLink();
@@ -22,6 +22,17 @@ const LiveQuizForm = () => {
     e.preventDefault();
     await setDoc(docRef, { formLink: link });
     setMessage('Live quiz link updated!');
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  const handleRemove = async () => {
+    if (window.confirm('Are you sure you want to remove the live quiz?')) {
+      // Remove the formLink field by setting it to empty string or delete field
+      await updateDoc(docRef, { formLink: '' });
+      setLink('');
+      setMessage('Live quiz link removed!');
+      setTimeout(() => setMessage(''), 3000);
+    }
   };
 
   return (
@@ -35,11 +46,23 @@ const LiveQuizForm = () => {
           onChange={(e) => setLink(e.target.value)}
           className="w-full border p-2 rounded"
           placeholder="Paste embed link here (must include embedded=true)"
-          required
+          required={!link} // Require input only if empty (optional)
         />
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-          Save Quiz Link
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Save Quiz Link
+          </button>
+          <button
+            type="button"
+            onClick={handleRemove}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            Remove Quiz
+          </button>
+        </div>
       </form>
     </div>
   );

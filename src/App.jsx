@@ -7,8 +7,9 @@ import Quiz from "./pages/Quiz";
 import StudyMaterial from "./pages/StudyMaterial";
 import Contact from "./pages/Contact";
 import AdminPanel from "./pages/AdminPanel";
+import Login from "./pages/Login";
 import 'remixicon/fonts/remixicon.css';
-
+import InstallPWA from "./components/InstallPWA";
 
 function App() {
   return (
@@ -22,8 +23,10 @@ function App() {
           <Route path="/study-material" element={<StudyMaterial />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/login" element={<Login />} />
         </Routes>
       </main>
+      <InstallPWA />
       <Footer />
     </div>
   );

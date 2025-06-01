@@ -1,0 +1,8 @@
+[
+    {
+      "origin": ["http://localhost:5173", "https://pranjal-pathshala.vercel.app/"],
+      "method": ["GET", "POST", "PUT", "DELETE"],
+      "maxAgeSeconds": 3600
+    }
+  ]
+  

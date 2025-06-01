@@ -22,9 +22,30 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 
-# dotenv environment files (if used)
+# dotenv environment files
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Firebase local emulators
+.firebase/
+
+# Mac system files
+.AppleDouble
+.LSOverride
+
+# Windows system files
+ehthumbs.db
+Desktop.ini
+
+# Linux system files
+*~
+
+# Optional: coverage reports
+coverage/
+
+# Optional: build cache
+.cache/
+# End of Selection

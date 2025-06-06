@@ -10,7 +10,7 @@ const Hero = () => {
       <div className="w-full md:w-1/2 space-y-6">
 
         <div>
-          <h1 className="text-5xl md:text-6xl font-bold font-poppins flex items-center gap-2">
+          <h1 className="text-5xl md:text-6xl font-bold font-poppins flex items-center gap-2 -mb-4">
             Aapka Safar,
             <img src={heroBag} alt="hero-bag" className="w-14 md:w-20 h-auto inline-block" />
           </h1>

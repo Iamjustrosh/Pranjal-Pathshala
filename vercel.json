@@ -1,20 +1,28 @@
 {
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ],
-  "cleanUrls": true,
   "headers": [
     {
       "source": "/sitemap.xml",
       "headers": [
-        { "key": "Content-Type", "value": "application/xml" }
+        {
+          "key": "Content-Type",
+          "value": "application/xml"
+        }
       ]
     },
     {
       "source": "/preview.png",
       "headers": [
-        { "key": "Content-Type", "value": "image/png" }
+        {
+          "key": "Content-Type",
+          "value": "image/png"
+        }
       ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/((?!sitemap.xml|preview.png).*)",
+      "destination": "/index.html"
     }
   ]
 }

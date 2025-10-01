@@ -26,6 +26,46 @@ const StudyMaterial = () => {
   const [selectedSubject, setSelectedSubject] = useState('');
   const [filteredMaterials, setFilteredMaterials] = useState([]);
 
+  // Normalization helpers to remove duplicacy in filter options
+  const normalizeValue = (value) => String(value ?? '').trim().toLowerCase();
+  const toTitleCase = (text) => String(text ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+
+  // Build unique, normalized lists for filter dropdowns
+  const uniqueClasses = Array.from(
+    new Map(
+      materials.map((m) => {
+        const raw = m.class;
+        const normalized = normalizeValue(raw);
+        // Keep trimmed raw for display/value when numeric; otherwise keep trimmed string
+        const trimmedRaw = String(raw ?? '').trim();
+        return [normalized, trimmedRaw];
+      })
+    ).values()
+  )
+    .filter(Boolean)
+    .sort((a, b) => {
+      const na = parseInt(a, 10);
+      const nb = parseInt(b, 10);
+      if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+      return a.localeCompare(b);
+    });
+
+  const uniqueSubjects = Array.from(
+    new Map(
+      materials.map((m) => {
+        const raw = m.subject;
+        const normalized = normalizeValue(raw);
+        const display = toTitleCase(raw);
+        return [normalized, display];
+      })
+    ).values()
+  )
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
+
 
   useEffect(() => {
     if (selectedOption === 'other') {
@@ -41,10 +81,10 @@ const StudyMaterial = () => {
   useEffect(() => {
     let temp = materials;
     if (selectedClass) {
-      temp = temp.filter(m => m.class === selectedClass);
+      temp = temp.filter((m) => normalizeValue(m.class) === normalizeValue(selectedClass));
     }
     if (selectedSubject) {
-      temp = temp.filter(m => m.subject === selectedSubject);
+      temp = temp.filter((m) => normalizeValue(m.subject) === normalizeValue(selectedSubject));
     }
     setFilteredMaterials(temp);
   }, [materials, selectedClass, selectedSubject]);
@@ -90,8 +130,8 @@ const StudyMaterial = () => {
               onChange={(e) => setSelectedClass(e.target.value)}
             >
               <option value="">All Classes</option>
-              {[...new Set(materials.map(m => m.class))].sort().map(cls => (
-                <option key={cls} value={cls}>Class {cls}</option>
+              {uniqueClasses.map((cls) => (
+                <option key={normalizeValue(cls)} value={cls}>Class {cls}</option>
               ))}
             </select>
 
@@ -101,8 +141,8 @@ const StudyMaterial = () => {
               onChange={(e) => setSelectedSubject(e.target.value)}
             >
               <option value="">All Subjects</option>
-              {[...new Set(materials.map(m => m.subject))].sort().map(sub => (
-                <option key={sub} value={sub}>{sub}</option>
+              {uniqueSubjects.map((sub) => (
+                <option key={normalizeValue(sub)} value={sub}>{sub}</option>
               ))}
             </select>
           </div>

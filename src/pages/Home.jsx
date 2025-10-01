@@ -76,7 +76,7 @@ const Home = () => {
           <div className="map-container flex justify-center items-center w-full  h-[450px] my-6">
             <iframe className='md:w-[60%] w-full'
               title="Pranjal Pathshala Location"
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d427.8502864813199!2d80.82428073825925!3d24.556119924730186!2m3!1f108.37500000000001!2f3.7810132195106387!3f0!3m2!1i1024!2i768!4f35!3m3!1m2!1s0x39847f69077e0b1b%3A0x5886c815631f3f5b!2sHR4F%2B9QF%2C%20near%20kapoor%20bangla%2C%20Prem%20Vihar%20Colony%2C%20Satna%2C%20Madhya%20Pradesh%20485001!5e1!3m2!1sen!2sin!4v1750693810383!5m2!1sen!2sin" // ← your actual URL here
+              src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d453.62062342303767!2d80.82440947531917!3d24.55587201098655!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39847fa29e0df0b1%3A0xb3ff3cb7b79fa546!2sPranjal%20Pathshala!5e0!3m2!1sen!2sin!4v1759336216112!5m2!1sen!2sin" 
               // width="60%"
               height="100%"
               style={{ border: 0 }} 
@@ -85,11 +85,12 @@ const Home = () => {
               referrerPolicy="no-referrer-when-downgrade"
             ></iframe>
           </div>
-
         </div>
       </div>
     </>
   )
 }
+
+
 
 export default Home

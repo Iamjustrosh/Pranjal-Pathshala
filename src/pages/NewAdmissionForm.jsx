@@ -601,7 +601,7 @@ const NewAdmissionForm = () => {
       {/* Hidden PDF template for PDF generation */}
       <div
         id="pdf-template"
-        className="w-[800px] bg-white text-gray-800 font-sans relative overflow-hidden"
+        className="hidden w-[800px] bg-white text-gray-800 font-sans relative overflow-hidden"
         style={{
           position: "relative",
           overflow: "hidden",

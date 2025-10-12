@@ -10,6 +10,7 @@ import AdminPanel from "./pages/AdminPanel";
 import Login from "./pages/Login";
 import 'remixicon/fonts/remixicon.css';
 import InstallPWA from "./components/InstallPWA";
+import NewAdmissionForm from "./pages/NewAdmissionForm";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/admission" element={<AdmissionForm />} />
+          <Route path="/new-admission" element={<NewAdmissionForm />} />
           <Route path="/quiz" element={<Quiz />} />
           <Route path="/study-material" element={<StudyMaterial />} />
           <Route path="/contact" element={<Contact />} />

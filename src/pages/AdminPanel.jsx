@@ -111,7 +111,7 @@ const AdminPanel = () => {
       {section === 'quiz' && <LiveQuizForm />}
 
       {section === 'students' && (
-        <div>
+        <div className='overflow-x-auto'>
           <button
             onClick={assignUsernames}
             className="bg-purple-500 text-white px-4 py-2 rounded mb-4"
@@ -122,7 +122,7 @@ const AdminPanel = () => {
           {loadingStudents ? (
             <p>Loading students...</p>
           ) : (
-            <table className="w-full border-collapse border border-gray-300">
+            <table className="w-full border-collapse border border-gray-300 ">
               <thead>
                 <tr>
                   <th className="border px-2 py-1">Name</th>

@@ -188,11 +188,12 @@ const NewAdmissionForm = () => {
     ) {
       errors.email = "Please enter a valid email address.";
     }
-
-    // // Require student photo
-    // if (!formData.photo_url) {
-    //   errors.photo_url = "Please upload the student's photo.";
-    // }
+    // console.log(formData.photo_url);
+    
+    // Require student photo
+    if (!formData.photo_url) {
+      errors.photo_url = "Please upload the student's photo.";
+    }
 
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);

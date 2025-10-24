@@ -189,10 +189,10 @@ const NewAdmissionForm = () => {
       errors.email = "Please enter a valid email address.";
     }
 
-    // Require student photo
-    if (!formData.photo_url) {
-      errors.photo_url = "Please upload the student's photo.";
-    }
+    // // Require student photo
+    // if (!formData.photo_url) {
+    //   errors.photo_url = "Please upload the student's photo.";
+    // }
 
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
@@ -355,7 +355,7 @@ const NewAdmissionForm = () => {
                 onChange={handlePhotoUpload}
                 className={input}
                 disabled={uploading}
-                required
+                
               />
               {uploading && <div className="text-blue-600 text-sm mt-1">Uploading...</div>}
               {uploadError && <div className="text-red-600 text-sm mt-1">{uploadError}</div>}

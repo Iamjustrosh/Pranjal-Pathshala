@@ -12,6 +12,7 @@ import 'remixicon/fonts/remixicon.css';
 import InstallPWA from "./components/InstallPWA";
 import NewAdmissionForm from "./pages/NewAdmissionForm";
 import AdmissionPDF from "./pages/AdmissionPDF";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -26,8 +27,14 @@ function App() {
           <Route path="/quiz" element={<Quiz />} />
           <Route path="/study-material" element={<StudyMaterial />} />
           <Route path="/contact" element={<Contact />} />
-          <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/admin" element={
+            <ProtectedRoute>
+
+              <AdminPanel />
+            </ProtectedRoute>
+          } />
           <Route path="/login" element={<Login />} />
+
         </Routes>
       </main>
       <InstallPWA />

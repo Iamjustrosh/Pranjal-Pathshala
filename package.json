@@ -20,6 +20,7 @@
     "jspdf": "^3.0.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-firebase-hooks": "^5.1.1",
     "react-router-dom": "^7.6.1",
     "remixicon": "^4.6.0",
     "swiper": "^11.2.8",

@@ -17,7 +17,7 @@ const Quiz = () => {
 
   if (!link) {
     return (
-      <section className="min-h-[60vh] flex items-center justify-center bg-gradient-to-b from-[#EEF2FF] via-white to-[#E0F2FE] px-4 py-10">
+      <section className="min-h-[60vh] flex items-center justify-center r px-4 py-10">
         <div className="max-w-lg w-full text-center rounded-3xl bg-white/90 border border-blue-100/70 shadow-[0_20px_60px_rgba(148,163,184,0.35)] px-6 py-10">
           <h1 className="text-2xl md:text-3xl poppins-bold text-slate-900 mb-3">
             Live Quiz
@@ -35,8 +35,8 @@ const Quiz = () => {
   }
 
   return (
-    <section className="min-h-[70vh] bg-gradient-to-b from-[#EEF2FF] via-white to-[#E0F2FE] px-4 py-10 md:py-14">
-      <div className="max-w-5xl mx-auto">
+    <section className="min-h-[70vh] r px-4 py-10 md:py-14">
+      <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8 md:mb-10 space-y-2">
           <p className="text-xs md:text-sm uppercase tracking-[0.24em] text-slate-500 poppins-medium">
             Practice • Compete • Improve

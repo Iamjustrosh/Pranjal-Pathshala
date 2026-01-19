@@ -28,7 +28,7 @@ const Contact = () => {
   };
 
   return (
-    <section className="w-full bg-gradient-to-b from-[#EEF2FF] via-white to-[#E0F2FE] py-10 md:py-14 px-4">
+    <section className="w-full py-10 md:py-14 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8 md:mb-10 space-y-2">
           <p className="text-xs md:text-sm uppercase tracking-[0.24em] text-slate-500 poppins-medium">

@@ -42,14 +42,14 @@ const Login = () => {
 
   if (checkingAuth) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gradient-to-b from-[#EEF2FF] via-white to-[#E0F2FE]">
+      <div className="flex justify-center items-center h-screen r">
         <p className="text-slate-600 text-sm md:text-base">Checking login status...</p>
       </div>
     );
   }
 
   return (
-    <section className="flex justify-center items-center min-h-[80vh] bg-gradient-to-b from-[#EEF2FF] via-white to-[#E0F2FE] px-4">
+    <section className="flex justify-center items-center min-h-[80vh] r px-4">
       <div className="w-full max-w-md">
         <form
           onSubmit={handleLogin}

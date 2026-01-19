@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import InstallPWA from './InstallPWA';
 
 const OutlinePencilIcon = () => (
   <svg
@@ -43,12 +44,14 @@ const OutlineBagIcon = () => (
   </svg>
 );
 
+
+// bg-gradient-to-br from-[#EEF2FF] via-[#FFFFFF] to-[#E0F2FE]   shadow-[0_24px_80px_rgba(148,163,184,0.35)] border border-blue-100/70
 const Hero = () => {
   return (
-    <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#EEF2FF] via-[#FFFFFF] to-[#E0F2FE] px-4 md:px-8 lg:px-12 py-12 md:py-16 shadow-[0_24px_80px_rgba(148,163,184,0.35)] border border-blue-100/70">
+    <section className="relative overflow-hidden rounded-3xl  px-4 md:px-8 lg:px-12 py-12 md:py-16 ">
       {/* Soft floating blobs */}
-      <div className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full bg-[radial-gradient(circle_at_center,rgba(129,140,248,0.20),transparent_60%)]" />
-      <div className="pointer-events-none absolute -right-16 bottom-0 h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,rgba(125,211,252,0.26),transparent_65%)]" />
+      {/* <div className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full bg-[radial-gradient(circle_at_center,rgba(129,140,248,0.20),transparent_60%)]" />
+      <div className="pointer-events-none absolute -right-16 bottom-0 h-44 w-44 rounded-full bg-[radial-gradient(circle_at_center,rgba(125,211,252,0.26),transparent_65%)]" /> */}
 
       {/* Floating outline stationery icons */}
       <div className="pointer-events-none absolute -left-2 md:left-6 top-10 md:top-8 rotate-[-8deg] animate-[float_5s_ease-in-out_infinite]">
@@ -85,12 +88,17 @@ const Hero = () => {
           saath unke academic goals tak pahunchne mein madad karta hai.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link to="/new-admission">
-            <button className="px-7 py-3.5 bg-[#60A5FA] text-white text-base md:text-lg poppins-semibold rounded-2xl shadow-[0_18px_40px_rgba(96,165,250,0.55)] hover:bg-[#3B82F6] hover:shadow-[0_22px_55px_rgba(96,165,250,0.7)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200">
-              Start Today
-            </button>
-          </Link>
+        <div className="flex flex-col ">
+          <div className="flex items-center justify-center gap-4 mb-7">
+            <Link to="/new-admission">
+              <button className="px-7 py-3.5 bg-[#60A5FA] text-white text-base md:text-lg poppins-semibold rounded-2xl shadow-[0_18px_40px_rgba(96,165,250,0.55)] hover:bg-[#3B82F6] hover:shadow-[0_22px_55px_rgba(96,165,250,0.7)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200">
+                Start Today
+              </button>
+
+            </Link>
+            <InstallPWA />
+          </div>
+
           <div className="text-sm md:text-base text-gray-600">
             <p className="poppins-semibold text-gray-800">
               All Subjects | CBSE & State Board

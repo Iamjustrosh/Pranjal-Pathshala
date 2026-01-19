@@ -266,8 +266,8 @@ const NewAdmissionForm = () => {
   };
 
   return (
-    <section className="min-h-[80vh] bg-gradient-to-b from-[#EEF2FF] via-white to-[#E0F2FE] px-4 py-10 md:py-14">
-      <div className="max-w-5xl mx-auto">
+    <section className="min-h-[80vh] r px-4 py-10 md:py-14">
+      <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8 md:mb-10 space-y-2">
           <p className="text-xs md:text-sm uppercase tracking-[0.24em] text-slate-500 poppins-medium">
             Detailed Admission Form

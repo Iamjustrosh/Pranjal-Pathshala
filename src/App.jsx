@@ -37,7 +37,7 @@ function App() {
 
         </Routes>
       </main>
-      <InstallPWA />
+      {/* <InstallPWA /> */}
       <Footer />
     </div>
   );

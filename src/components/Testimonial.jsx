@@ -73,8 +73,6 @@ const Testimonial = () => {
         <Swiper
           spaceBetween={24}
           slidesPerView={1}
-          pagination={{ clickable: true }}
-          navigation={true}
           loop
           autoplay={{
             delay: 5500,
@@ -97,7 +95,7 @@ const Testimonial = () => {
               <article className="h-full">
                 <div className="relative flex h-full flex-col rounded-3xl bg-white/90 px-5 py-6 md:px-6 md:py-7 shadow-[0_18px_40px_rgba(148,163,184,0.25)] border border-blue-100/70 hover:border-blue-200 hover:-translate-y-1 hover:shadow-[0_22px_55px_rgba(148,163,184,0.35)] transition-all duration-200">
                   {/* Accent top bar */}
-                  <div className="absolute inset-x-0 top-0 h-1 rounded-t-3xl bg-gradient-to-r from-[#BFDBFE] via-[#E0F2FE] to-[#BFDBFE]" />
+                  {/* <div className="absolute inset-x-0 top-0 h-1 rounded-t-3xl bg-gradient-to-r from-[#BFDBFE] via-[#E0F2FE] to-[#BFDBFE]" /> */}
 
                   {/* Quote icon */}
                   <div className="mb-3 flex justify-between items-start">

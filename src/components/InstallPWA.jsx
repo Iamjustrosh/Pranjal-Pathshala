@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 const InstallPWA = () => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [showInstallButton, setShowInstallButton] = useState(false);
+  const [showInstallButton, setShowInstallButton] = useState(true);
 
   useEffect(() => {
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -26,7 +26,7 @@ const InstallPWA = () => {
     showInstallButton && (
       <button
         onClick={handleInstallClick}
-        className="fixed bottom-5 right-5 bg-orange-500 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-orange-600"
+        className="px-7 py-3.5 bg-green-500 text-white text-base md:text-lg poppins-semibold rounded-2xl shadow-[0_18px_40px_rgba(96,165,250,0.55)] hover:bg-green-600 hover:shadow-[0_22px_55px_rgba(96,165,250,0.7)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
       >
         Install App
       </button>

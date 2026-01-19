@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
   },
   headerBox: {
     backgroundColor: "#182B5C",
-    color: "#FF914D",
+    color: "#60A5FA",
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginBottom: 10,

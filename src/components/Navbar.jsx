@@ -17,53 +17,76 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="bg-white shadow-md relative top-0 left-0 w-full z-50 border-b-2 border-gray-400">
-      <div className="w-full px-2 md:py-3 flex items-center justify-between">
-  
-        <Link to="/" className="text-xl font-bold text-blue-600">
-          <img src={logo} alt="logo" className="w-20 h-20" />
+    <nav className="sticky top-0 left-0 w-full z-50 bg-white/80 backdrop-blur border-b border-blue-100 shadow-[0_8px_30px_rgba(148,163,184,0.28)]">
+      <div className="max-w-6xl mx-auto px-3 md:px-6 lg:px-4 py-2 md:py-3 flex items-center justify-between gap-3">
+        {/* Logo + brand */}
+        <Link to="/" className="flex items-center gap-2 md:gap-3">
+          <div className="flex items-center justify-center rounded-2xl bg-[#EEF2FF] border border-blue-100 px-2 py-1 md:px-2.5 md:py-1.5">
+            <img src={logo} alt="Pranjal Pathshala logo" className="w-10 h-10 md:w-12 md:h-12" />
+          </div>
+          <div className="hidden sm:flex flex-col leading-tight">
+            <span className="text-sm md:text-base poppins-semibold text-slate-900">
+              Pranjal Pathshala
+            </span>
+            <span className="text-[10px] md:text-[11px] uppercase tracking-[0.22em] text-slate-400">
+              Learn • Practice • Grow
+            </span>
+          </div>
         </Link>
 
-        <div className="md:hidden">
-          <button
-            onClick={toggleMenu}
-            className="text-gray-800 focus:outline-none"
-            aria-label="Toggle menu"
-          >
-            <i
-              className={`ri-${isOpen ? "close-line" : "menu-line"} text-3xl`}
-            ></i>
-          </button>
+        {/* Desktop nav */}
+        <div className="hidden md:flex items-center gap-2 lg:gap-4 text-sm md:text-[15px]">
+          {navLinks.map((link) => (
+            <NavLink
+              key={link.path}
+              to={link.path}
+              className={({ isActive }) =>
+                `px-3 py-2 rounded-full flex items-center justify-center gap-2 transition-colors ${
+                  isActive
+                    ? "bg-[#DBEAFE] text-[#1D4ED8] font-semibold"
+                    : "text-slate-700 hover:text-[#1D4ED8] hover:bg-slate-50"
+                }`
+              }
+            >
+              {link.name}
+            </NavLink>
+          ))}
         </div>
 
-        <div
-          className={`
-            ${isOpen ? "block" : "hidden"} 
-            md:flex md:items-center md:gap-8
-            absolute md:static left-0 top-full w-full h-screen md:h-auto py-32 md:py-0.5 md:w-auto bg-white md:bg-transparent
-            ${isOpen ? "shadow-md" : ""}
-            transition-all
-          `}
-          style={isOpen ? { zIndex: 100 } : {}}
+        {/* Mobile menu button */}
+        <button
+          onClick={toggleMenu}
+          className="md:hidden inline-flex items-center justify-center rounded-full border border-slate-200 bg-white/90 p-2 text-slate-700 shadow-sm"
+          aria-label="Toggle menu"
         >
-          <div className="flex flex-col gap-2 text-2xl md:text-xl md:flex-row md:gap-8">
+          <i className={`ri-${isOpen ? "close-line" : "menu-line"} text-2xl`} />
+        </button>
+      </div>
+
+      {/* Mobile nav */}
+      {isOpen && (
+        <div className="md:hidden border-t border-slate-100 bg-white/96 backdrop-blur shadow-[0_14px_45px_rgba(148,163,184,0.28)]">
+          <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col gap-2">
             {navLinks.map((link) => (
               <NavLink
-                key={link.name}
+                key={link.path}
                 to={link.path}
                 className={({ isActive }) =>
-                  `flex items-center justify-center gap-2 py-2 px-4 text-gray-800 hover:text-blue-600 ${
-                    isActive ? "font-semibold text-blue-600" : ""
+                  `w-full px-3 py-2.5 rounded-xl flex items-center justify-between text-sm ${
+                    isActive
+                      ? "bg-[#DBEAFE] text-[#1D4ED8] font-semibold"
+                      : "text-slate-700 hover:bg-slate-50"
                   }`
                 }
                 onClick={() => setIsOpen(false)}
               >
-                {link.name}
+                <span>{link.name}</span>
+                <i className="ri-arrow-right-s-line text-slate-400 text-lg" />
               </NavLink>
             ))}
           </div>
         </div>
-      </div>
+      )}
     </nav>
   );
 };

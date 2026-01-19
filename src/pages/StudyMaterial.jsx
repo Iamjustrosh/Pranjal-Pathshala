@@ -7,17 +7,17 @@ const NCERT_SOLUTIONS_URL = "https://www.learncbse.in/ncert-solutions-2/";
 
 // 3D card styles for "Other Materials"
 const card3DBase =
-  "relative bg-white border border-gray-200 rounded-xl shadow-2xl p-6 flex justify-between items-center transition-transform duration-300";
+  "relative bg-white border border-blue-100/80 rounded-2xl shadow-[0_16px_45px_rgba(148,163,184,0.28)] p-5 md:p-6 flex justify-between items-center transition-transform duration-300";
 const card3DStatic =
-  "before:content-[''] before:absolute before:inset-0 before:rounded-xl before:shadow-[0_8px_24px_rgba(0,0,0,0.18),0_1.5px_0_#cbd5e1] before:-z-10";
+  "before:content-[''] before:absolute before:inset-0 before:rounded-2xl before:shadow-[0_0_0_rgba(0,0,0,0)] before:-z-10";
 const card3DHover =
-  "hover:-translate-y-2 hover:scale-105 hover:shadow-[0_16px_32px_rgba(59,130,246,0.18),0_3px_0_#3b82f6] hover:ring-2 hover:ring-blue-400 hover:ring-offset-2";
+  "hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(148,163,184,0.35)] hover:border-blue-200";
 
 // 3D shadow for buttons
 const button3D =
-  "shadow-[0_4px_16px_rgba(59,130,246,0.18),0_1.5px_0_#3b82f6] transition-transform duration-200";
+  "shadow-[0_4px_16px_rgba(96,165,250,0.24)] transition-transform duration-200";
 const button3DHover =
-  "hover:-translate-y-1 hover:scale-105 hover:shadow-[0_8px_24px_rgba(59,130,246,0.25),0_3px_0_#2563eb]";
+  "hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-[0_8px_24px_rgba(96,165,250,0.32)]";
 
 const StudyMaterial = () => {
   const [selectedOption, setSelectedOption] = useState('ncert_books');
@@ -91,41 +91,66 @@ const StudyMaterial = () => {
 
 
   return (
-    <div className="p-4 space-y-6 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold text-center">Study Materials</h1>
-      <div className="flex justify-center space-x-4 mb-6">
-        <a
-          href={NCERT_BOOKS_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`px-4 py-2 rounded ${selectedOption === 'ncert_books' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'} ${button3D} ${button3DHover} flex items-center justify-center`}
-          style={{ textDecoration: 'none' }}
-        >
-          NCERT Books
-        </a>
-        <a
-          href={NCERT_SOLUTIONS_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`px-4 py-2 rounded ${selectedOption === 'ncert_solutions' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'} ${button3D} ${button3DHover} flex items-center justify-center`}
-          style={{ textDecoration: 'none' }}
-        >
-          NCERT Solutions
-        </a>
-        <button
-          className={`px-4 py-2 rounded ${selectedOption === 'other' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'} ${button3D} ${button3DHover}`}
-          onClick={() => setSelectedOption('other')}
-        >
-          Other Materials
-        </button>
-      </div>
+    <section className="min-h-[70vh] bg-gradient-to-b from-[#EEF2FF] via-white to-[#E0F2FE] px-4 py-10 md:py-14">
+      <div className="space-y-8 max-w-5xl mx-auto">
+        <div className="text-center space-y-2">
+          <p className="text-xs md:text-sm uppercase tracking-[0.24em] text-slate-500 poppins-medium">
+            Smart Resources For Smart Learning
+          </p>
+          <h1 className="text-3xl md:text-4xl poppins-bold text-slate-900">
+            Study <span className="text-[#3B82F6]">Materials</span>
+          </h1>
+          <p className="text-sm md:text-base text-slate-600 max-w-2xl mx-auto">
+            NCERT books, solutions, aur hamare curated notes – sab kuch ek jagah. Apne class aur
+            subject ke hisaab se material choose karein.
+          </p>
+        </div>
 
-      {/* Remove iframe for ncert_books and ncert_solutions */}
-      {selectedOption === 'other' && (
-        <>
+        <div className="flex justify-center flex-wrap gap-3 md:gap-4 mb-4 md:mb-6">
+          <a
+            href={NCERT_BOOKS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`px-4 py-2 rounded-full text-sm md:text-base ${
+              selectedOption === 'ncert_books'
+                ? 'bg-[#DBEAFE] text-[#1D4ED8] border border-blue-200'
+                : 'bg-white text-slate-700 border border-slate-200'
+            } ${button3D} ${button3DHover} flex items-center justify-center`}
+            style={{ textDecoration: 'none' }}
+          >
+            NCERT Books
+          </a>
+          <a
+            href={NCERT_SOLUTIONS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`px-4 py-2 rounded-full text-sm md:text-base ${
+              selectedOption === 'ncert_solutions'
+                ? 'bg-[#DBEAFE] text-[#1D4ED8] border border-blue-200'
+                : 'bg-white text-slate-700 border border-slate-200'
+            } ${button3D} ${button3DHover} flex items-center justify-center`}
+            style={{ textDecoration: 'none' }}
+          >
+            NCERT Solutions
+          </a>
+          <button
+            className={`px-4 py-2 rounded-full text-sm md:text-base ${
+              selectedOption === 'other'
+                ? 'bg-[#DBEAFE] text-[#1D4ED8] border border-blue-200'
+                : 'bg-white text-slate-700 border border-slate-200'
+            } ${button3D} ${button3DHover}`}
+            onClick={() => setSelectedOption('other')}
+          >
+            Other Materials
+          </button>
+        </div>
+
+        {/* Remove iframe for ncert_books and ncert_solutions */}
+        {selectedOption === 'other' && (
+          <>
           <div className="flex flex-wrap justify-center gap-4 mb-6">
             <select
-              className="border p-2 rounded"
+              className="border border-slate-200 bg-white/90 text-slate-800 px-3 py-2 rounded-xl text-sm md:text-base shadow-sm focus:outline-none focus:ring-2 focus:ring-[#60A5FA] focus:border-transparent"
               value={selectedClass}
               onChange={(e) => setSelectedClass(e.target.value)}
             >
@@ -136,7 +161,7 @@ const StudyMaterial = () => {
             </select>
 
             <select
-              className="border p-2 rounded"
+              className="border border-slate-200 bg-white/90 text-slate-800 px-3 py-2 rounded-xl text-sm md:text-base shadow-sm focus:outline-none focus:ring-2 focus:ring-[#60A5FA] focus:border-transparent"
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
             >
@@ -148,38 +173,44 @@ const StudyMaterial = () => {
           </div>
 
           <ul className="space-y-6">
-            {filteredMaterials.length === 0 && <li>No study materials found.</li>}
+            {filteredMaterials.length === 0 && (
+              <li className="text-center text-slate-500 text-sm md:text-base">
+                No study materials found. Try changing the filters.
+              </li>
+            )}
             {filteredMaterials.map((item) => (
               <li
                 key={item.id}
                 className={`${card3DBase} ${card3DStatic} ${card3DHover} group`}
                 style={{
                   boxShadow:
-                    "0 8px 24px rgba(0,0,0,0.18), 0 1.5px 0 #cbd5e1, 0 0.5px 0 #e0e7ef",
-                  transform: "perspective(800px) rotateX(2deg) rotateY(-2deg)",
-                  background: "linear-gradient(135deg, #f8fafc 80%, #e0e7ef 100%)",
+                    "0 16px 45px rgba(148,163,184,0.26)",
+                  transform: "perspective(900px) rotateX(1.5deg) rotateY(-1.5deg)",
+                  background: "linear-gradient(135deg, #F9FAFB 76%, #E0F2FE 100%)",
                 }}
               >
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900 drop-shadow-sm">{item.title}</h2>
-                  <p className="text-gray-700">Class: {item.class} | Subject: {item.subject}</p>
+                  <h2 className="text-lg md:text-xl font-semibold text-gray-900 drop-shadow-sm">{item.title}</h2>
+                  <p className="text-sm md:text-base text-gray-700">
+                    Class: {item.class} | Subject: {item.subject}
+                  </p>
                 </div>
                 <a
                   href={item.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="bg-blue-600 text-white px-4 py-2 rounded shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:bg-blue-700 group-hover:rotate-2"
-                  style={{ boxShadow: "0 4px 16px rgba(59,130,246,0.18)" }}
+                  className="bg-[#60A5FA] text-white px-4 py-2 rounded-full text-sm md:text-base shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:bg-[#3B82F6] group-hover:rotate-1"
+                  style={{ boxShadow: "0 4px 16px rgba(96,165,250,0.22)" }}
                 >
                   View
                 </a>
               </li>
             ))}
           </ul>
-        </>
-      )}
-
-    </div>
+          </>
+        )}
+      </div>
+    </section>
   );
 };
 

@@ -47,12 +47,12 @@ const AdmissionPDF = () => {
         };
 
         function drawContent() {
-          // Letterhead - Complete blue background255, 145, 77
-          pdf.setFillColor(240, 240, 240); // #182B5C
+          // Letterhead - neutral light background
+          pdf.setFillColor(240, 240, 240);
           pdf.rect(0, y, pageWidth, 34, "F"); // Slightly taller letterhead height
 
           // Title
-          pdf.setTextColor(24, 43, 92); // #FF914D
+          pdf.setTextColor(24, 43, 92);
           pdf.setFontSize(24); // Reduced from 18 to 16
           pdf.setFont("helvetica", "bold");
           pdf.text("Pranjal Pathshala", 10, y + 14); // Added top padding for header content
@@ -440,7 +440,7 @@ const AdmissionPDF = () => {
         </p>
         <button
           onClick={handleDownload}
-          className={`px-5 py-2 bg-[#FF914D] text-white rounded-md font-semibold transition ${isReady ? "hover:bg-[#FFB14D]" : "opacity-50 cursor-not-allowed"
+          className={`px-5 py-2 bg-[#60A5FA] text-white rounded-md font-semibold transition ${isReady ? "hover:bg-[#3B82F6]" : "opacity-50 cursor-not-allowed"
             }`}
           disabled={!isReady}
         >

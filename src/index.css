@@ -108,3 +108,25 @@
     font-style: italic;
   }
   
+  /* Ensure equal-height testimonial slides/cards */
+  .testimonial-swiper .swiper-wrapper {
+    align-items: stretch;
+  }
+  
+  .testimonial-swiper .swiper-slide {
+    height: auto;
+    display: flex;
+  }
+  
+  @keyframes float {
+    0% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+    100% {
+      transform: translateY(0px);
+    }
+  }
+  

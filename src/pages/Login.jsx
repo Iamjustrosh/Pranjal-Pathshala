@@ -42,44 +42,70 @@ const Login = () => {
 
   if (checkingAuth) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-50">
-        <p>Checking login status...</p>
+      <div className="flex justify-center items-center h-screen bg-gradient-to-b from-[#EEF2FF] via-white to-[#E0F2FE]">
+        <p className="text-slate-600 text-sm md:text-base">Checking login status...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex justify-center items-center h-screen bg-gray-50">
-      <form
-        onSubmit={handleLogin}
-        className="bg-white p-6 rounded-lg shadow-md w-80 space-y-4"
-      >
-        <h2 className="text-2xl font-bold text-center">Admin Login</h2>
-        {error && <p className="text-red-500 text-center">{error}</p>}
-        <input
-          type="email"
-          placeholder="Email"
-          className="w-full border px-3 py-2 rounded"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full border px-3 py-2 rounded"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+    <section className="flex justify-center items-center min-h-[80vh] bg-gradient-to-b from-[#EEF2FF] via-white to-[#E0F2FE] px-4">
+      <div className="w-full max-w-md">
+        <form
+          onSubmit={handleLogin}
+          className="bg-white/95 border border-blue-100/70 rounded-3xl shadow-[0_22px_70px_rgba(148,163,184,0.35)] px-6 py-8 md:px-8 md:py-10 space-y-5"
         >
-          Sign In
-        </button>
-      </form>
-    </div>
+          <div className="text-center space-y-1 mb-2">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500 poppins-medium">
+              Secure Access
+            </p>
+            <h2 className="text-2xl md:text-3xl poppins-bold text-slate-900">Admin Login</h2>
+            <p className="text-xs md:text-sm text-slate-500">
+              Enter your credentials to manage quizzes, materials, and admissions.
+            </p>
+          </div>
+          {error && <p className="text-red-500 text-center text-sm">{error}</p>}
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs md:text-sm text-slate-600 mb-1" htmlFor="email">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                className="w-full border border-slate-200 px-3 py-2.5 rounded-xl text-sm md:text-base bg-white/90 focus:outline-none focus:ring-2 focus:ring-[#60A5FA] focus:border-transparent"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs md:text-sm text-slate-600 mb-1" htmlFor="password">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                className="w-full border border-slate-200 px-3 py-2.5 rounded-xl text-sm md:text-base bg-white/90 focus:outline-none focus:ring-2 focus:ring-[#60A5FA] focus:border-transparent"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-[#60A5FA] text-white py-2.5 rounded-xl text-sm md:text-base poppins-semibold shadow-[0_16px_40px_rgba(96,165,250,0.55)] hover:bg-[#3B82F6] hover:shadow-[0_20px_55px_rgba(96,165,250,0.7)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+          >
+            Sign In
+          </button>
+        </form>
+      </div>
+    </section>
   );
 };
 

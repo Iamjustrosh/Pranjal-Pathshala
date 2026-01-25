@@ -1,17 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { db } from '../firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import React from 'react';
 
 const NCERT_BOOKS_URL = "https://ncert.nic.in/textbook.php";
 const NCERT_SOLUTIONS_URL = "https://www.learncbse.in/ncert-solutions-2/";
-
-// 3D card styles for "Other Materials"
-const card3DBase =
-  "relative bg-white border border-blue-100/80 rounded-2xl shadow-[0_16px_45px_rgba(148,163,184,0.28)] p-5 md:p-6 flex justify-between items-center transition-transform duration-300";
-const card3DStatic =
-  "before:content-[''] before:absolute before:inset-0 before:rounded-2xl before:shadow-[0_0_0_rgba(0,0,0,0)] before:-z-10";
-const card3DHover =
-  "hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(148,163,184,0.35)] hover:border-blue-200";
 
 // 3D shadow for buttons
 const button3D =
@@ -19,231 +9,43 @@ const button3D =
 const button3DHover =
   "hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-[0_8px_24px_rgba(96,165,250,0.32)]";
 
-// Simple Tooltip component
-const Tooltip = ({ text, children }) => (
-  <span className="relative group">
-    {children}
-    <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-20 w-max opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition text-xs px-3 py-1 bg-slate-700 text-white rounded shadow-md whitespace-nowrap">
-      {text}
-    </span>
-  </span>
-);
-
 const StudyMaterial = () => {
-  // Default to showing 'other' material as per instruction
-  const [selectedOption, setSelectedOption] = useState('other');
-  const [materials, setMaterials] = useState([]);
-  const [selectedClass, setSelectedClass] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('');
-  const [filteredMaterials, setFilteredMaterials] = useState([]);
-
-  // Normalization helpers to remove duplicacy in filter options
-  const normalizeValue = (value) => String(value ?? '').trim().toLowerCase();
-  const toTitleCase = (text) => String(text ?? '')
-    .trim()
-    .toLowerCase()
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-
-  // Build unique, normalized lists for filter dropdowns
-  const uniqueClasses = Array.from(
-    new Map(
-      materials.map((m) => {
-        const raw = m.class;
-        const normalized = normalizeValue(raw);
-        // Keep trimmed raw for display/value when numeric; otherwise keep trimmed string
-        const trimmedRaw = String(raw ?? '').trim();
-        return [normalized, trimmedRaw];
-      })
-    ).values()
-  )
-    .filter(Boolean)
-    .sort((a, b) => {
-      const na = parseInt(a, 10);
-      const nb = parseInt(b, 10);
-      if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
-      return a.localeCompare(b);
-    });
-
-  const uniqueSubjects = Array.from(
-    new Map(
-      materials.map((m) => {
-        const raw = m.subject;
-        const normalized = normalizeValue(raw);
-        const display = toTitleCase(raw);
-        return [normalized, display];
-      })
-    ).values()
-  )
-    .filter(Boolean)
-    .sort((a, b) => a.localeCompare(b));
-
-
-  useEffect(() => {
-    if (selectedOption === 'other') {
-      const fetch = async () => {
-        const snapshot = await getDocs(collection(db, 'materials'));
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setMaterials(data);
-      };
-      fetch();
-    }
-  }, [selectedOption]);
-
-  useEffect(() => {
-    let temp = materials;
-    if (selectedClass) {
-      temp = temp.filter((m) => normalizeValue(m.class) === normalizeValue(selectedClass));
-    }
-    if (selectedSubject) {
-      temp = temp.filter((m) => normalizeValue(m.subject) === normalizeValue(selectedSubject));
-    }
-    setFilteredMaterials(temp);
-  }, [materials, selectedClass, selectedSubject]);
-
-
   return (
-    <section className="min-h-[70vh] r px-4 py-10 md:py-14">
-      <div className="space-y-8 max-w-7xl mx-auto">
-        <div className="text-center space-y-2">
+    <section className="min-h-[60vh] px-4 py-10 md:py-14 flex items-center justify-center">
+      <div className="space-y-8 max-w-4xl mx-auto w-full">
+        <div className="text-center space-y-4">
           <p className="text-xs md:text-sm uppercase tracking-[0.24em] text-slate-500 poppins-medium">
-            Smart Resources For Smart Learning
+            Official Resources
           </p>
           <h1 className="text-3xl md:text-4xl poppins-bold text-slate-900">
-            Study <span className="text-[#3B82F6]">Materials</span>
+            NCERT <span className="text-[#3B82F6]">Library</span>
           </h1>
           <p className="text-sm md:text-base text-slate-600 max-w-2xl mx-auto">
-            NCERT books, solutions, and our curated notes – all in one place. Select your class and
-            subject to find materials.<br />
-            <span className="inline-block mt-2 text-blue-600 font-semibold text-base animate-pulse">
-              Click one of the buttons below to get your study materials!
-            </span>
+            Access official textbooks and solutions directly from the source. 
+            <br />
+            <span className="text-slate-400 text-xs mt-2 block">(For coaching specific notes, please login to your Student Dashboard)</span>
           </p>
         </div>
 
-        <div className="flex justify-center flex-wrap gap-3 md:gap-4 mb-4 md:mb-6">
-          <Tooltip text="Click to access official NCERT textbooks">
-            <a
-              href={NCERT_BOOKS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`px-4 py-2 rounded-full text-sm md:text-base ${
-                selectedOption === 'ncert_books'
-                  ? 'bg-[#DBEAFE] text-[#1D4ED8] border border-blue-200'
-                  : 'bg-white text-slate-700 border border-slate-200'
-              } ${button3D} ${button3DHover} flex items-center justify-center`}
-              style={{ textDecoration: 'none' }}
-              aria-label="NCERT Books"
-              tabIndex={0}
-              onClick={() => setSelectedOption('ncert_books')}
-            >
-              NCERT Books
-            </a>
-          </Tooltip>
-          <Tooltip text="Click to access NCERT solutions">
-            <a
-              href={NCERT_SOLUTIONS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`px-4 py-2 rounded-full text-sm md:text-base ${
-                selectedOption === 'ncert_solutions'
-                  ? 'bg-[#DBEAFE] text-[#1D4ED8] border border-blue-200'
-                  : 'bg-white text-slate-700 border border-slate-200'
-              } ${button3D} ${button3DHover} flex items-center justify-center`}
-              style={{ textDecoration: 'none' }}
-              aria-label="NCERT Solutions"
-              tabIndex={0}
-              onClick={() => setSelectedOption('ncert_solutions')}
-            >
-              NCERT Solutions
-            </a>
-          </Tooltip>
-          <Tooltip text="Click to explore our special curated study materials">
-            <button
-              className={`px-4 py-2 rounded-full text-sm md:text-base ${
-                selectedOption === 'other'
-                  ? 'bg-[#DBEAFE] text-[#1D4ED8] border border-blue-200'
-                  : 'bg-white text-slate-700 border border-slate-200'
-              } ${button3D} ${button3DHover}`}
-              onClick={() => setSelectedOption('other')}
-              aria-label="Coaching Notes"
-              tabIndex={0}
-              type="button"
-            >
-              Coaching Notes
-            </button>
-          </Tooltip>
+        <div className="flex flex-col sm:flex-row justify-center gap-6">
+          <a
+            href={NCERT_BOOKS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`px-8 py-4 rounded-2xl bg-white border border-slate-200 text-slate-700 font-semibold text-lg ${button3D} ${button3DHover} flex items-center justify-center gap-2 group`}
+          >
+            NCERT Books
+          </a>
+          
+          <a
+            href={NCERT_SOLUTIONS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`px-8 py-4 rounded-2xl bg-[#eff6ff] border border-blue-200 text-blue-700 font-semibold text-lg ${button3D} ${button3DHover} flex items-center justify-center gap-2`}
+          >
+            NCERT Solutions
+          </a>
         </div>
-
-        {/* iframe removed for ncert_books and ncert_solutions */}
-
-        {selectedOption === 'other' && (
-          <>
-            <div className="flex flex-wrap justify-center gap-4 mb-6">
-              <select
-                className="border border-slate-200 bg-white/90 text-slate-800 px-3 py-2 rounded-xl text-sm md:text-base shadow-sm focus:outline-none focus:ring-2 focus:ring-[#60A5FA] focus:border-transparent"
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
-              >
-                <option value="">All Classes</option>
-                {uniqueClasses.map((cls) => (
-                  <option key={normalizeValue(cls)} value={cls}>Class {cls}</option>
-                ))}
-              </select>
-
-              <select
-                className="border border-slate-200 bg-white/90 text-slate-800 px-3 py-2 rounded-xl text-sm md:text-base shadow-sm focus:outline-none focus:ring-2 focus:ring-[#60A5FA] focus:border-transparent"
-                value={selectedSubject}
-                onChange={(e) => setSelectedSubject(e.target.value)}
-              >
-                <option value="">All Subjects</option>
-                {uniqueSubjects.map((sub) => (
-                  <option key={normalizeValue(sub)} value={sub}>{sub}</option>
-                ))}
-              </select>
-            </div>
-            <p className="text-center mb-4 text-blue-700 text-base font-medium animate-pulse">
-              Click the <span className="font-bold">View</span> button to get your study material!
-            </p>
-            <ul className="space-y-6">
-              {filteredMaterials.length === 0 && (
-                <li className="text-center text-slate-500 text-sm md:text-base">
-                  No study materials found. Try changing the filters.
-                </li>
-              )}
-              {filteredMaterials.map((item) => (
-                <li
-                  key={item.id}
-                  className={`${card3DBase} ${card3DStatic} ${card3DHover} group`}
-                  style={{
-                    boxShadow:
-                      "0 16px 45px rgba(148,163,184,0.26)",
-                    transform: "perspective(900px) rotateX(1.5deg) rotateY(-1.5deg)",
-                    background: "linear-gradient(135deg, #F9FAFB 76%, #E0F2FE 100%)",
-                  }}
-                >
-                  <div>
-                    <h2 className="text-lg md:text-xl font-semibold text-gray-900 drop-shadow-sm">{item.title}</h2>
-                    <p className="text-sm md:text-base text-gray-700">
-                      Class: {item.class} | Subject: {item.subject}
-                    </p>
-                  </div>
-                  <Tooltip text="Click to open study material">
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="bg-[#60A5FA] text-white px-4 py-2 rounded-full text-sm md:text-base shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:bg-[#3B82F6] group-hover:rotate-1"
-                      style={{ boxShadow: "0 4px 16px rgba(96,165,250,0.22)" }}
-                      aria-label={`View study material: ${item.title}`}
-                    >
-                      View
-                    </a>
-                  </Tooltip>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
       </div>
     </section>
   );

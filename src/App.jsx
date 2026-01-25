@@ -13,6 +13,7 @@ import InstallPWA from "./components/InstallPWA";
 import NewAdmissionForm from "./pages/NewAdmissionForm";
 import AdmissionPDF from "./pages/AdmissionPDF";
 import ProtectedRoute from "./components/ProtectedRoute";
+import StudentDashboard from "./pages/StudentDashboard";
 
 function App() {
   return (
@@ -29,10 +30,10 @@ function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/admin" element={
             <ProtectedRoute>
-
               <AdminPanel />
             </ProtectedRoute>
           } />
+          <Route path="/student-dashboard" element={<StudentDashboard />} />
           <Route path="/login" element={<Login />} />
 
         </Routes>

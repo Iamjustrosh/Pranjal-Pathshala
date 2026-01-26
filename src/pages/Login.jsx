@@ -167,7 +167,7 @@ const Login = () => {
                 <input
                   id="username"
                   type="text"
-                  placeholder="e.g. rohan492"
+                  placeholder="Enter Your UID"
                   className={inputClass}
                   value={username} onChange={(e) => setUsername(e.target.value)} required
                 />

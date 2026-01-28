@@ -17,13 +17,21 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [dob, setDob] = useState('');
 
-  // Common UI Classes
+  // Styles
   const inputClass = "w-full border border-slate-200 px-3 py-2.5 rounded-xl text-sm md:text-base bg-white/90 focus:outline-none focus:ring-2 focus:ring-[#60A5FA] focus:border-transparent transition-all duration-200";
   const labelClass = "block text-xs md:text-sm text-slate-600 mb-1 poppins-medium";
   const buttonClass = "w-full bg-[#60A5FA] text-white py-2.5 rounded-xl text-sm md:text-base poppins-semibold shadow-[0_16px_40px_rgba(96,165,250,0.55)] hover:bg-[#3B82F6] hover:shadow-[0_20px_55px_rgba(96,165,250,0.7)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed";
 
-  // Check if Admin is already logged in
+  // Check Auth & Persistence
   useEffect(() => {
+    // 1. Check if Student is already logged in via LocalStorage
+    const studentData = localStorage.getItem('studentUser');
+    if (studentData) {
+      navigate('/student-dashboard', { replace: true });
+      return;
+    }
+
+    // 2. Check if Admin is logged in via Firebase
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         navigate('/admin', { replace: true });
@@ -66,6 +74,7 @@ const Login = () => {
         throw new Error('Invalid Username or Date of Birth');
       }
 
+      // Store session
       localStorage.setItem('studentUser', JSON.stringify(data));
       navigate('/student-dashboard');
     } catch (err) {
@@ -77,7 +86,7 @@ const Login = () => {
   if (checkingAuth) {
     return (
       <div className="flex justify-center items-center h-screen bg-slate-50">
-        <p className="text-slate-600 text-sm md:text-base animate-pulse">Checking login status...</p>
+        <p className="text-slate-600 text-sm md:text-base animate-pulse">Checking existing session...</p>
       </div>
     );
   }
@@ -139,25 +148,19 @@ const Login = () => {
               <div>
                 <label className={labelClass} htmlFor="email">Email</label>
                 <input
-                  id="email"
-                  type="email"
-                  placeholder="admin@example.com"
-                  className={inputClass}
-                  value={email} onChange={(e) => setEmail(e.target.value)} required
+                  id="email" type="email" placeholder="admin@example.com"
+                  className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} required
                 />
               </div>
               <div>
                 <label className={labelClass} htmlFor="password">Password</label>
                 <input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  className={inputClass}
-                  value={password} onChange={(e) => setPassword(e.target.value)} required
+                  id="password" type="password" placeholder="••••••••"
+                  className={inputClass} value={password} onChange={(e) => setPassword(e.target.value)} required
                 />
               </div>
               <button type="submit" disabled={loading} className={buttonClass}>
-                {loading ? 'Authenticating...' : 'Access Dashboard'}
+                {loading ? 'Authenticating...' : 'Login'}
               </button>
             </form>
           ) : (
@@ -165,11 +168,8 @@ const Login = () => {
               <div>
                 <label className={labelClass} htmlFor="username">Username</label>
                 <input
-                  id="username"
-                  type="text"
-                  placeholder="Enter Your UID"
-                  className={inputClass}
-                  value={username} onChange={(e) => setUsername(e.target.value)} required
+                  id="username" type="text" placeholder="Enter Your UID"
+                  className={inputClass} value={username} onChange={(e) => setUsername(e.target.value)} required
                 />
               </div>
               <div>
@@ -178,14 +178,12 @@ const Login = () => {
                   <span className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Use as Password</span>
                 </div>
                 <input
-                  id="dob"
-                  type="date"
-                  className={inputClass}
-                  value={dob} onChange={(e) => setDob(e.target.value)} required
+                  id="dob" type="date"
+                  className={inputClass} value={dob} onChange={(e) => setDob(e.target.value)} required
                 />
               </div>
               <button type="submit" disabled={loading} className={buttonClass}>
-                {loading ? 'Verifying...' : 'View My Marks'}
+                {loading ? 'Verifying...' : 'Login'}
               </button>
             </form>
           )}

@@ -2,211 +2,140 @@ import React, { useEffect, useState } from 'react';
 import { db, storage } from '../firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { addDoc, collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { RiDeleteBinLine, RiBookOpenLine, RiDownloadLine, RiEditLine, RiLinkM } from 'react-icons/ri';
 
 const StudyMaterialForm = () => {
-  const [title, setTitle] = useState('');
-  const [subject, setSubject] = useState('');
-  const [classLevel, setClassLevel] = useState('');
-  const [file, setFile] = useState(null);
-  const [link, setLink] = useState('');
-  const [message, setMessage] = useState('');
+  // Default state ensures board is never undefined for new entries
+  const [formData, setFormData] = useState({ title: '', subject: '', class: '10', board: 'CBSE', file: null, link: '' });
   const [materials, setMaterials] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
-  const materialsCollection = collection(db, 'materials');
+  const materialsCol = collection(db, 'materials');
 
-  // Fetch existing materials
+  useEffect(() => { fetchMaterials(); }, []);
+
   const fetchMaterials = async () => {
-    const snapshot = await getDocs(materialsCollection);
-    setMaterials(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    const snap = await getDocs(materialsCol);
+    setMaterials(snap.docs.map(d => ({ id: d.id, ...d.data() })));
   };
 
-  useEffect(() => {
-    fetchMaterials();
-  }, []);
-
-  const clearForm = () => {
-    setTitle('');
-    setSubject('');
-    setClassLevel('');
-    setFile(null);
-    setLink('');
-    setEditingId(null);
-  };
-
-  const handleUploadOrLink = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!title || !subject || !classLevel) {
-      setMessage('Please fill all fields');
-      return;
+    setLoading(true);
+    
+    let url = formData.link;
+    
+    if (formData.file) {
+        const fileRef = ref(storage, `materials/${Date.now()}_${formData.file.name}`);
+        await uploadBytes(fileRef, formData.file);
+        url = await getDownloadURL(fileRef);
     }
 
-    let urlToSave = link;
-
-    // If file selected, upload it and get URL
-    if (file) {
-      const storageRef = ref(storage, `materials/${file.name}-${Date.now()}`);
-      await uploadBytes(storageRef, file);
-      urlToSave = await getDownloadURL(storageRef);
-    }
+    // SANITIZATION: Ensure no field is undefined
+    const payload = {
+        title: formData.title || '',
+        subject: formData.subject || '',
+        class: formData.class || '10',
+        board: formData.board || 'CBSE', // Fallback to prevent undefined error
+        url: url || '',
+        updatedAt: new Date()
+    };
 
     try {
-      if (editingId) {
-        // Update existing doc
-        await updateDoc(doc(db, 'materials', editingId), {
-          title,
-          subject,
-          class: classLevel,
-          url: urlToSave,
-          updatedAt: new Date(),
-        });
-        setMessage('Study material updated successfully!');
-      } else {
-        // Add new doc
-        await addDoc(materialsCollection, {
-          title,
-          subject,
-          class: classLevel,
-          url: urlToSave,
-          uploadedAt: new Date(),
-        });
-        setMessage('Study material uploaded successfully!');
-      }
-      clearForm();
-      fetchMaterials();
+        if (editingId) {
+            await updateDoc(doc(db, 'materials', editingId), payload);
+            alert("Updated!");
+            setEditingId(null);
+        } else {
+            await addDoc(materialsCol, { ...payload, createdAt: new Date() });
+            alert("Uploaded!");
+        }
+        
+        // Reset form
+        setFormData({ title: '', subject: '', class: '10', board: 'CBSE', file: null, link: '' });
+        fetchMaterials();
     } catch (error) {
-      setMessage('Error saving study material: ' + error.message);
+        console.error("Firebase Error:", error);
+        alert("Error saving: " + error.message);
     }
+    
+    setLoading(false);
   };
 
-  // Delete a material
+  const handleEdit = (m) => {
+    setEditingId(m.id);
+    // FIX: Add fallbacks (|| '') here to handle old data that might be missing fields
+    setFormData({ 
+        title: m.title || '', 
+        subject: m.subject || '', 
+        class: m.class || '10', 
+        board: m.board || 'CBSE', // <--- CRITICAL FIX
+        link: m.url || '', 
+        file: null 
+    });
+    window.scrollTo({top:0, behavior:'smooth'});
+  };
+
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this study material?')) {
-      await deleteDoc(doc(db, 'materials', id));
-      setMessage('Study material deleted!');
-      fetchMaterials();
+    if(window.confirm('Delete?')) {
+        await deleteDoc(doc(db, 'materials', id));
+        fetchMaterials();
     }
   };
 
-  // Load material data into form for editing
-  const handleEdit = (material) => {
-    setTitle(material.title);
-    setSubject(material.subject);
-    setClassLevel(material.class);
-    setLink(material.url);
-    setEditingId(material.id);
-    setFile(null); // clear file input when editing
-  };
+  const classOptions = Array.from({length: 12}, (_, i) => (i + 1).toString());
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
-      <h2 className="text-xl font-semibold">{editingId ? 'Edit' : 'Upload'} Study Material</h2>
-      {message && <p className="text-green-600">{message}</p>}
-      <form onSubmit={handleUploadOrLink} className="space-y-3">
-        <input
-          type="text"
-          placeholder="Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-          className="border p-2 w-full rounded"
-        />
-        <input
-          type="text"
-          placeholder="Subject"
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          required
-          className="border p-2 w-full rounded"
-        />
-        <input
-          type="text"
-          placeholder="Class"
-          value={classLevel}
-          onChange={(e) => setClassLevel(e.target.value)}
-          required
-          className="border p-2 w-full rounded"
-        />
+    <div className="max-w-4xl mx-auto space-y-6">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><RiBookOpenLine className="text-blue-500"/> {editingId ? 'Edit Material' : 'Upload Material'}</h2>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input className="border p-2 rounded" placeholder="Title" value={formData.title} onChange={e=>setFormData({...formData, title:e.target.value})} required/>
+                <input className="border p-2 rounded" placeholder="Subject" value={formData.subject} onChange={e=>setFormData({...formData, subject:e.target.value})} required/>
+                
+                <div className="flex gap-2">
+                    <select className="border p-2 rounded w-1/2 bg-white" value={formData.class} onChange={e=>setFormData({...formData, class:e.target.value})}>
+                        {classOptions.map(c => <option key={c} value={c}>Class {c}</option>)}
+                    </select>
+                    <select className="border p-2 rounded w-1/2 bg-white" value={formData.board} onChange={e=>setFormData({...formData, board:e.target.value})}>
+                        <option value="CBSE">CBSE</option>
+                        <option value="ICSE">ICSE</option>
+                        <option value="State Board">State Board</option>
+                    </select>
+                </div>
 
-        <p className="font-semibold">Either upload a file OR enter an external link:</p>
-        <input
-          type="file"
-          onChange={(e) => {
-            setFile(e.target.files[0]);
-            setLink('');
-          }}
-          className="border p-2 w-full rounded"
-          disabled={link !== ''}
-        />
-        <input
-          type="url"
-          placeholder="Or enter external link here"
-          value={link}
-          onChange={(e) => {
-            setLink(e.target.value);
-            if (e.target.value) setFile(null);
-          }}
-          className="border p-2 w-full rounded"
-          disabled={file !== null}
-        />
+                <div className="md:col-span-2 border p-3 rounded bg-gray-50">
+                    <p className="text-xs font-bold mb-2 text-gray-500">Attach File OR Paste Link</p>
+                    <div className="flex gap-4">
+                        <input type="file" className="w-1/2 text-sm" onChange={e=>setFormData({...formData, file:e.target.files[0]})} />
+                        <input className="w-1/2 border p-1 rounded text-sm" placeholder="OR Paste URL here" value={formData.link} onChange={e=>setFormData({...formData, link:e.target.value})} />
+                    </div>
+                </div>
 
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            {editingId ? 'Update' : 'Upload'}
-          </button>
-          <button
-            type="button"
-            onClick={clearForm}
-            className="bg-gray-400 text-black px-4 py-2 rounded hover:bg-gray-500"
-          >
-            Clear
-          </button>
+                <button disabled={loading} className="md:col-span-2 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">{loading ? 'Processing...' : (editingId ? 'Update Material' : 'Upload')}</button>
+                {editingId && <button type="button" onClick={()=>{setEditingId(null); setFormData({ title: '', subject: '', class: '10', board: 'CBSE', file: null, link: '' })}} className="md:col-span-2 bg-gray-200 py-2 rounded">Cancel Edit</button>}
+            </form>
         </div>
-      </form>
 
-      <hr className="my-6" />
-
-      <h3 className="text-lg font-semibold">Existing Study Materials</h3>
-      <ul className="space-y-3">
-        {materials.length === 0 && <li>No study materials uploaded yet.</li>}
-        {materials.map((m) => (
-          <li
-            key={m.id}
-            className="border p-3 rounded flex justify-between items-center"
-          >
-            <div>
-              <h4 className="font-semibold">{m.title}</h4>
-              <p>Class: {m.class} | Subject: {m.subject}</p>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h3 className="font-bold mb-4">Library</h3>
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+                {materials.map(m => (
+                    <div key={m.id} className="flex justify-between items-center p-3 border rounded hover:bg-slate-50">
+                        <div>
+                            <p className="font-bold text-sm">{m.title}</p>
+                            <p className="text-xs text-slate-500">{m.board || 'CBSE'} | Class {m.class} | {m.subject}</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <a href={m.url} target="_blank" rel="noreferrer" className="text-blue-500 p-2"><RiLinkM size={18}/></a>
+                            <button onClick={()=>handleEdit(m)} className="text-yellow-500 p-2"><RiEditLine size={18}/></button>
+                            <button onClick={()=>handleDelete(m.id)} className="text-red-500 p-2"><RiDeleteBinLine size={18}/></button>
+                        </div>
+                    </div>
+                ))}
             </div>
-            <div className="flex gap-2">
-              <a
-                href={m.url}
-                target="_blank"
-                rel="noreferrer"
-                className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
-              >
-                View
-              </a>
-              <button
-                onClick={() => handleEdit(m)}
-                className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => handleDelete(m.id)}
-                className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-              >
-                Delete
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+        </div>
     </div>
   );
 };

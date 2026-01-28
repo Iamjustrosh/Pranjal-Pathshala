@@ -1,14 +1,15 @@
-import { Navigate } from "react-router-dom";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "../firebase";
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const ProtectedRoute = ({ children }) => {
-  const [user, loading] = useAuthState(auth);
+  const { currentUser } = useAuth();
 
-  if (loading) return <p>Loading...</p>; // waits while Firebase checks login
-  if (!user) return <Navigate to="/login" replace />; // redirect if not logged in
+  if (!currentUser) {
+    return <Navigate to="/login" />;
+  }
 
-  return children; // if logged in, show the protected page
+  return children;
 };
 
 export default ProtectedRoute;

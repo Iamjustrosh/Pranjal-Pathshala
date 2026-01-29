@@ -63,7 +63,7 @@ const LiveQuizForm = () => {
     }
   };
 
-  const classOptions = Array.from({length: 12}, (_, i) => (i + 1).toString());
+  const classOptions = Array.from({length: 10}, (_, i) => (i + 1).toString());
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">

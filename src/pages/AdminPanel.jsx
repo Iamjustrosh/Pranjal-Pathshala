@@ -11,7 +11,8 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { 
   RiUserAddLine, RiGroupLine, RiFileChartLine, RiBookOpenLine, 
   RiQuestionAnswerLine, RiLogoutBoxRLine, RiArrowLeftLine,
-  RiSave3Line, RiDeleteBinLine, RiCloseLine, RiEditLine, RiTrophyLine
+  RiSave3Line, RiDeleteBinLine, RiCloseLine, RiEditLine, RiTrophyLine,
+  RiBarChartLine, RiTableLine
 } from 'react-icons/ri';
 
 const AdminPanel = () => {
@@ -29,8 +30,14 @@ const AdminPanel = () => {
   const [selectedAdmission, setSelectedAdmission] = useState(null); 
   const [selectedStudent, setSelectedStudent] = useState(null); 
   const [fullStudentData, setFullStudentData] = useState(null); 
-  const [studentMarks, setStudentMarks] = useState([]); // NEW: Stores specific student marks
+  
+  // *** CRITICAL: Initialize as empty array ***
+  const [studentMarks, setStudentMarks] = useState([]); 
   const [editingMark, setEditingMark] = useState(null); 
+
+  // --- VIEW CONTROLS ---
+  const [graphMode, setGraphMode] = useState('test'); // 'test' or 'quiz'
+  const [viewType, setViewType] = useState('chart'); // 'chart' or 'table'
 
   // --- FORMS STATE ---
   const [markData, setMarkData] = useState({ student_id: '', subject: '', exam_type: 'test', marks: '', max_marks: '', exam_date: '' });
@@ -49,6 +56,24 @@ const AdminPanel = () => {
         fetchMarksHistory();
     }
   }, [activeTab]);
+
+  // --- FILTERING LOGIC (Copied from StudentDashboard for consistency) ---
+  const filteredMarks = studentMarks.filter(m => {
+      const type = (m.exam_type || '').toLowerCase().trim();
+      if (graphMode === 'test') {
+          return type === 'test' || type === 'exam';
+      } else {
+          return type === 'quiz';
+      }
+  });
+
+  const graphData = filteredMarks.map(m => ({
+      date: m.exam_date,
+      subject: m.subject, 
+      marks: m.marks,
+      max: m.max_marks,
+      percentage: ((m.marks / m.max_marks) * 100).toFixed(1)
+  }));
 
   // --- FETCHERS ---
   const fetchAdmissionRequests = async () => {
@@ -69,7 +94,6 @@ const AdminPanel = () => {
   };
 
   // --- ACTIONS: ADMISSIONS TAB ---
-  
   const handleUpdateAdmission = async (e) => {
     e.preventDefault();
     const { error } = await supabase.from('students').update({
@@ -128,7 +152,6 @@ const AdminPanel = () => {
     if(!window.confirm(`Enroll ${pending.length} students?`)) return;
 
     setLoading(true);
-    // Placeholder for loop
     setLoading(false);
     alert("Batch function placeholder executed.");
   };
@@ -142,7 +165,6 @@ const AdminPanel = () => {
 
   // --- ACTIONS: CLASS MANAGER TAB ---
   
-  // 1. FETCH FULL DETAILS & MARKS
   const handleViewStudentDetails = async (student) => {
     setSelectedStudent(student);
     
@@ -155,7 +177,7 @@ const AdminPanel = () => {
         setFullStudentData({ student_name: student.name, class: student.class }); 
     }
 
-    // NEW: Fetch Marks for this student
+    // Fetch Marks for this student
     const { data: marks } = await supabase
         .from('marks')
         .select('*')
@@ -165,7 +187,6 @@ const AdminPanel = () => {
     setStudentMarks(marks || []);
   };
 
-  // 2. UPDATE FULL DETAILS & SYNC
   const handleUpdateStudentFull = async (e) => {
     e.preventDefault();
     
@@ -183,7 +204,6 @@ const AdminPanel = () => {
             await supabase.from('students').update(fullStudentData).eq('id', fullStudentData.id);
         }
         alert("Student Updated & Synced!");
-        // We don't close the modal here to allow viewing marks, but refresh list
         fetchCoachingStudents();
     } else {
         alert(err1.message);
@@ -217,6 +237,20 @@ const AdminPanel = () => {
         exam_date: mark.exam_date
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // New: Delete mark logic
+  const handleDeleteMark = async (id) => {
+    if(!window.confirm("Are you sure you want to delete this mark?")) return;
+    const { error } = await supabase.from('marks').delete().eq('id', id);
+    if(error) {
+      alert(error.message);
+    } else {
+      alert("Mark deleted!");
+      setEditingMark(null);
+      setMarkData({ student_id: '', subject: '', exam_type: 'test', marks: '', max_marks: '', exam_date: '' });
+      fetchMarksHistory();
+    }
   };
 
   const logout = () => { auth.signOut(); navigate('/login'); };
@@ -321,7 +355,7 @@ const AdminPanel = () => {
                 // FULL STUDENT EDIT FORM + MARKS HISTORY
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                     <div className="p-4 border-b flex items-center gap-4 bg-slate-50 sticky top-0 z-10">
-                        <button onClick={() => {setSelectedStudent(null); setFullStudentData(null)}} className="p-2 hover:bg-white rounded-full transition"><RiArrowLeftLine size={20}/></button>
+                        <button onClick={() => {setSelectedStudent(null); setFullStudentData(null); setStudentMarks([])}} className="p-2 hover:bg-white rounded-full transition"><RiArrowLeftLine size={20}/></button>
                         <h2 className="font-bold text-lg">Student Profile: {selectedStudent.name}</h2>
                     </div>
                     
@@ -337,68 +371,88 @@ const AdminPanel = () => {
                                         <option>CBSE</option><option>ICSE</option><option>State Board</option>
                                     </select>
                                 </div>
-                                {/* <div><label className="text-xs text-slate-500 uppercase font-bold">Gender</label><input className="w-full border p-2 rounded" value={fullStudentData.gender || ''} onChange={e=>setFullStudentData({...fullStudentData, gender: e.target.value})} /></div> */}
 
                                 <h3 className="md:col-span-2 font-bold text-blue-600 border-b pb-2 pt-2">Login Credentials (Editable)</h3>
                                 <div className="bg-yellow-50 p-3 rounded border border-yellow-200"><label className="text-xs text-yellow-700 uppercase font-bold">Username</label><input className="w-full border p-2 rounded bg-white" value={selectedStudent.username || ''} onChange={e=>setSelectedStudent({...selectedStudent, username: e.target.value})} /></div>
                                 <div className="bg-yellow-50 p-3 rounded border border-yellow-200"><label className="text-xs text-yellow-700 uppercase font-bold">DOB (Password)</label><input type="date" className="w-full border p-2 rounded bg-white" value={selectedStudent.dob || ''} onChange={e=>setSelectedStudent({...selectedStudent, dob: e.target.value})} /></div>
-
-                                {/* <h3 className="md:col-span-2 font-bold text-blue-600 border-b pb-2 pt-2">Contact & Parents</h3>
-                                <div><label className="text-xs text-slate-500 uppercase font-bold">Phone</label><input className="w-full border p-2 rounded" value={fullStudentData.contact_number || ''} onChange={e=>setFullStudentData({...fullStudentData, contact_number: e.target.value})} /></div>
-                                <div><label className="text-xs text-slate-500 uppercase font-bold">Father's Name</label><input className="w-full border p-2 rounded" value={fullStudentData.father_name || ''} onChange={e=>setFullStudentData({...fullStudentData, father_name: e.target.value})} /></div>
-                                <div className="md:col-span-2"><label className="text-xs text-slate-500 uppercase font-bold">Address</label><textarea className="w-full border p-2 rounded" rows="2" value={fullStudentData.address || ''} onChange={e=>setFullStudentData({...fullStudentData, address: e.target.value})} /></div> */}
 
                                 <div className="md:col-span-2 flex justify-end gap-3 mt-4">
                                     <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 flex items-center gap-2"><RiSave3Line/> Update & Sync</button>
                                 </div>
                             </form>
 
-                            {/* --- NEW SECTION: PERFORMANCE ANALYTICS --- */}
+                            {/* --- PERFORMANCE ANALYTICS SECTION (FIXED & MATCHING STUDENT DASHBOARD) --- */}
                             <div className="border-t-4 border-slate-100 pt-8">
-                                <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><RiTrophyLine className="text-amber-500"/> Performance & Marks History</h3>
-                                
-                                {studentMarks.length > 0 ? (
-                                    <div className="grid lg:grid-cols-2 gap-8">
-                                        {/* CHART */}
-                                        <div className="bg-white p-4 border rounded-xl shadow-sm h-64">
-                                            <h4 className="text-sm font-bold text-slate-400 uppercase mb-4">Score Trend (Recent Tests)</h4>
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2"><RiTrophyLine className="text-amber-500"/> Performance & Marks</h3>
+                                    
+                                    <div className="flex gap-2">
+                                        {/* Toggle: Test vs Quiz */}
+                                        <div className="flex bg-slate-100 p-1 rounded-lg">
+                                            <button type="button" onClick={()=>setGraphMode('test')} className={`px-3 py-1 text-xs font-bold rounded-md transition ${graphMode==='test' ? 'bg-white shadow text-blue-600':'text-slate-500'}`}>Tests</button>
+                                            <button type="button" onClick={()=>setGraphMode('quiz')} className={`px-3 py-1 text-xs font-bold rounded-md transition ${graphMode==='quiz' ? 'bg-white shadow text-blue-600':'text-slate-500'}`}>Quizzes</button>
+                                        </div>
+                                        {/* Toggle: Chart vs Table */}
+                                        <div className="flex bg-slate-100 p-1 rounded-lg">
+                                            <button type="button" onClick={()=>setViewType('chart')} className={`p-1.5 rounded-md transition ${viewType==='chart' ? 'bg-white shadow text-blue-600':'text-slate-400'}`}><RiBarChartLine size={18}/></button>
+                                            <button type="button" onClick={()=>setViewType('table')} className={`p-1.5 rounded-md transition ${viewType==='table' ? 'bg-white shadow text-blue-600':'text-slate-400'}`}><RiTableLine size={18}/></button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="h-72 w-full min-h-[300px] [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none" style={{outline: 'none'}}>
+                                    {/* Handle Empty State based on FILTERED marks, not total marks */}
+                                    {filteredMarks.length === 0 ? (
+                                        <div className="h-full flex items-center justify-center text-slate-400 border border-dashed rounded-2xl">
+                                            No {graphMode} records found for this student.
+                                        </div>
+                                    ) : (
+                                        viewType === 'chart' ? (
                                             <ResponsiveContainer width="100%" height="100%">
-                                                <LineChart data={studentMarks.slice(-10)}> {/* Last 10 marks */}
-                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                                    {/* <XAxis dataKey="exam_date" tickFormatter={(t)=> t ? t.slice(5) : ''} style={{ fontSize: '12px' }}/> */}
+                                                <LineChart data={graphData}>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                                                     <XAxis dataKey="subject" tick={{fontSize: 11, fill: '#64748B'}} interval={0} tickMargin={10} />
-                                                    {/* <YAxis style={{ fontSize: '12px' }}/> */}
                                                     <YAxis domain={[0, 100]} tick={{fontSize: 12, fill: '#64748B'}} axisLine={false} tickLine={false} />
-                                                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}/>
-                                                    <Line type="monotone" dataKey="marks" stroke="#2563eb" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                                                    <Tooltip 
+                                                        cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                                        contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}
+                                                        formatter={(value) => [`${value}%`, `Percentage`]}
+                                                        labelFormatter={(label) => `Subject: ${label}`}
+                                                    />
+                                                    <Line 
+                                                        type="monotone" 
+                                                        dataKey="percentage" 
+                                                        stroke="#3B82F6" 
+                                                        strokeWidth={3} 
+                                                        dot={{r: 4, fill:'#3B82F6', strokeWidth:2, stroke:'#fff'}} 
+                                                        activeDot={{r: 6, stroke: 'none'}} 
+                                                    />
                                                 </LineChart>
                                             </ResponsiveContainer>
-                                        </div>
-
-                                        {/* TABLE */}
-                                        <div className="overflow-hidden border rounded-xl">
-                                            <table className="w-full text-sm text-left">
-                                                <thead className="bg-slate-50 text-slate-500 font-bold border-b">
-                                                    <tr><th className="p-3">Date</th><th className="p-3">Subject</th><th className="p-3">Type</th><th className="p-3 text-right">Score</th></tr>
-                                                </thead>
-                                                <tbody className="divide-y">
-                                                    {[...studentMarks].reverse().map((m) => ( // Reverse to show latest first in table
-                                                        <tr key={m.id} className="hover:bg-blue-50">
-                                                            <td className="p-3 text-slate-500">{m.exam_date}</td>
-                                                            <td className="p-3 font-medium">{m.subject}</td>
-                                                            <td className="p-3"><span className="text-xs uppercase border px-1 rounded bg-white">{m.exam_type}</span></td>
-                                                            <td className="p-3 text-right font-bold text-blue-600">{m.marks} / {m.max_marks}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="text-center p-8 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                                        <p className="text-slate-500">No marks uploaded for this student yet.</p>
-                                    </div>
-                                )}
+                                        ) : (
+                                            // TABLE VIEW
+                                            <div className="h-full overflow-y-auto pr-2">
+                                                <table className="w-full text-sm text-left border-collapse">
+                                                    <thead className="bg-slate-50 text-slate-500 font-bold sticky top-0">
+                                                        <tr><th className="p-3 rounded-tl-lg">Subject</th><th className="p-3">Date</th><th className="p-3 rounded-tr-lg text-right">Score</th></tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100">
+                                                        {[...filteredMarks].reverse().map((m) => (
+                                                            <tr key={m.id} className="hover:bg-slate-50 transition">
+                                                                <td className="p-3 font-medium text-slate-700">{m.subject}</td>
+                                                                <td className="p-3 text-slate-500 text-xs">{m.exam_date}</td>
+                                                                <td className="p-3 text-right">
+                                                                    <span className="font-bold text-blue-600">{m.marks}</span>
+                                                                    <span className="text-slate-400 text-xs">/{m.max_marks}</span>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )
+                                    )}
+                                </div>
                             </div>
                         </div>
                     ) : <p className="p-10 text-center">Loading Profile...</p>}
@@ -439,7 +493,7 @@ const AdminPanel = () => {
                         </select>
                         <div className="flex gap-3">
                             <select className="w-1/2 border p-3 rounded-lg bg-slate-50" value={markData.exam_type} onChange={e => setMarkData({...markData, exam_type: e.target.value})}>
-                                <option value="test">Test</option><option value="quiz">Quiz</option>
+                                <option value="test">Test</option><option value="exam">Exam</option><option value="quiz">Quiz</option>
                             </select>
                             <input type="date" className="w-1/2 border p-3 rounded-lg bg-slate-50" value={markData.exam_date} onChange={e => setMarkData({...markData, exam_date: e.target.value})} required />
                         </div>
@@ -450,7 +504,23 @@ const AdminPanel = () => {
                         </div>
                         <div className="flex gap-2">
                             <button className="flex-1 bg-slate-900 text-white py-3 rounded-lg hover:bg-slate-800 font-bold">{editingMark ? 'Update Mark' : 'Submit Result'}</button>
-                            {editingMark && <button type="button" onClick={()=>{setEditingMark(null); setMarkData({ student_id: '', subject: '', exam_type: 'test', marks: '', max_marks: '', exam_date: '' })}} className="px-4 bg-gray-200 rounded-lg font-bold">Cancel</button>}
+                            {editingMark && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={()=>{setEditingMark(null); setMarkData({ student_id: '', subject: '', exam_type: 'test', marks: '', max_marks: '', exam_date: '' })}}
+                                  className="px-4 bg-gray-200 rounded-lg font-bold"
+                                >Cancel</button>
+                                <button
+                                  type="button"
+                                  onClick={()=>handleDeleteMark(editingMark)}
+                                  className="px-4 bg-red-500 text-white rounded-lg font-bold flex items-center gap-1 hover:bg-red-600"
+                                  title="Delete this mark"
+                                >
+                                  <RiDeleteBinLine/> Delete
+                                </button>
+                              </>
+                            )}
                         </div>
                     </form>
                 </div>

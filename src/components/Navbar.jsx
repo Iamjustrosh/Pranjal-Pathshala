@@ -10,7 +10,6 @@ const Navbar = () => {
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "Admission Form", path: "/new-admission" },
-    { name: "Quiz", path: "/quiz" },
     { name: "Study Material", path: "/study-material" },
     { name: "Contact Us", path: "/contact" },
     { name: (<><i className="ri-admin-line mr-1"></i></>), path: "/login" },

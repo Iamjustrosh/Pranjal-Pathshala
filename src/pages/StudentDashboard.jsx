@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { db } from '../firebase'; 
-// We import getDocs and collection ONLY. We filter manually in JS.
 import { collection, getDocs } from 'firebase/firestore'; 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { 
@@ -21,10 +20,13 @@ const StudentDashboard = () => {
   const [materials, setMaterials] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
   const [loadingContent, setLoadingContent] = useState(false);
-  
+
   // View Controls
   const [graphMode, setGraphMode] = useState('test'); // 'test' or 'quiz'
   const [viewType, setViewType] = useState('chart'); // 'chart' or 'table'
+
+  // Subject filter for study materials
+  const [materialSubject, setMaterialSubject] = useState('All');
 
   useEffect(() => {
     const stored = localStorage.getItem('studentUser');
@@ -35,7 +37,6 @@ const StudentDashboard = () => {
   }, [navigate]);
 
   // --- HELPER: Normalize Class for Comparison ---
-  // This turns "10", 10, "Class 10", "10th" all into just "10"
   const normalizeClass = (val) => String(val || '').replace(/\D/g, '').trim();
 
   const fetchFreshData = async (studentId) => {
@@ -65,8 +66,6 @@ const StudentDashboard = () => {
     setLoadingContent(true);
     try {
         const targetClass = normalizeClass(studentData.class);
-        console.log("Student Class:", studentData.class, "Normalized:", targetClass);
-
         // --- FETCH MATERIALS ---
         const matRef = collection(db, "materials");
         const matSnap = await getDocs(matRef);
@@ -74,7 +73,6 @@ const StudentDashboard = () => {
         
         // Filter in Memory
         const myMaterials = allMats.filter(m => normalizeClass(m.class) === targetClass);
-        console.log(`Found ${allMats.length} total materials. ${myMaterials.length} match Class ${targetClass}`);
         setMaterials(myMaterials);
 
         // --- FETCH QUIZZES ---
@@ -84,7 +82,6 @@ const StudentDashboard = () => {
         
         // Filter in Memory
         const myQuizzes = allQuizzes.filter(q => normalizeClass(q.class) === targetClass);
-        console.log(`Found ${allQuizzes.length} total quizzes. ${myQuizzes.length} match Class ${targetClass}`);
         setQuizzes(myQuizzes);
 
     } catch (err) {
@@ -96,7 +93,6 @@ const StudentDashboard = () => {
   const handleLogout = () => { localStorage.removeItem('studentUser'); navigate('/login'); };
 
   // --- GRAPH FILTER ---
-  // Fixes "Test" vs "test" case sensitivity
   const filteredMarks = marks.filter(m => {
       const type = (m.exam_type || '').toLowerCase().trim();
       if (graphMode === 'test') {
@@ -113,6 +109,22 @@ const StudentDashboard = () => {
       max: m.max_marks,
       percentage: ((m.marks / m.max_marks) * 100).toFixed(1)
   }));
+
+  // --- SUBJECT LIST FOR FILTER ---
+  const materialSubjects = React.useMemo(() => {
+    // unique list of subjects, ignore missing
+    const subs = materials
+      .map(m => m.subject)
+      .filter(Boolean)
+      .reduce((acc, s) => acc.includes(s) ? acc : [...acc, s], []);
+    return subs;
+  }, [materials]);
+
+  // Filtered Materials based on selected subject
+  const filteredMaterials = React.useMemo(() => {
+    if (!materials || materialSubject === 'All') return materials;
+    return materials.filter(m => m.subject === materialSubject);
+  }, [materials, materialSubject]);
 
   if (!student) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400">Loading Profile...</div>;
 
@@ -168,7 +180,7 @@ const StudentDashboard = () => {
                     </div>
                 </div>
 
-                <div className="h-72 w-full min-h-[300px]">
+                <div className="h-72 w-full min-h-[300px] [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none" style={{ outline: 'none' }}>
                     {filteredMarks.length === 0 ? (
                         <div className="h-full flex items-center justify-center text-slate-400 border border-dashed rounded-2xl">
                             No {graphMode} records found.
@@ -181,12 +193,12 @@ const StudentDashboard = () => {
                                     <XAxis dataKey="subject" tick={{fontSize: 11, fill: '#64748B'}} interval={0} tickMargin={10} />
                                     <YAxis domain={[0, 100]} tick={{fontSize: 12, fill: '#64748B'}} axisLine={false} tickLine={false} />
                                     <Tooltip 
-                                        cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                        cursor={{ stroke: '#94ab8', strokeWidth: 1, strokeDasharray: '4 4' }}
                                         contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}
                                         formatter={(value) => [`${value}%`, `Percentage`]}
                                         labelFormatter={(label) => `Subject: ${label}`}
                                     />
-                                    <Line type="monotone" dataKey="percentage" stroke="#3B82F6" strokeWidth={3} dot={{r: 4, fill:'#3B82F6', strokeWidth:2, stroke:'#fff'}} activeDot={{r: 6}} />
+                                    <Line type="monotone" dataKey="percentage" stroke="#3B82F6" strokeWidth={3} dot={{r: 4, fill:'#3B82F6', strokeWidth:2, stroke:'#fff'}} activeDot={{r: 6,}} />
                                 </LineChart>
                             </ResponsiveContainer>
                         ) : (
@@ -237,10 +249,25 @@ const StudentDashboard = () => {
             {/* MATERIALS */}
             <div className="space-y-4">
                 <h3 className="text-xl font-bold flex items-center gap-2 text-slate-800"><RiBookOpenLine size={24} className="text-blue-500"/> Study Material</h3>
+                {/* Subject filter dropdown */}
+                <div className="flex items-center gap-2 mb-3">
+                    <label htmlFor="materialSubject" className="font-semibold text-sm text-slate-700">Filter:</label>
+                    <select
+                        id="materialSubject"
+                        value={materialSubject}
+                        onChange={e => setMaterialSubject(e.target.value)}
+                        className="text-sm px-3 py-1 border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    >
+                        <option value="All">All Subjects</option>
+                        {materialSubjects.map(subj => (
+                          <option key={subj} value={subj}>{subj}</option>
+                        ))}
+                    </select>
+                </div>
                 <div className="bg-white p-5 rounded-3xl border border-slate-100 min-h-[200px] max-h-[400px] overflow-y-auto shadow-sm">
                     {loadingContent ? <p className="text-center py-10 text-slate-400">Loading notes...</p> : 
-                     materials.length === 0 ? <p className="text-center py-12 text-slate-400">No notes found for Class {student.class}.</p> : (
-                        materials.map(m => (
+                     (!filteredMaterials || filteredMaterials.length === 0) ? <p className="text-center py-12 text-slate-400">No notes found for Class {student.class}{materialSubject !== 'All' ? ` (${materialSubject})` : ""}.</p> : (
+                        filteredMaterials.map(m => (
                             <a key={m.id} href={m.url} target="_blank" rel="noreferrer" className={`${cardBase} ${cardHover} group mb-3`}>
                                 <div>
                                     <p className="font-bold text-slate-700 group-hover:text-blue-600 transition">{m.title}</p>

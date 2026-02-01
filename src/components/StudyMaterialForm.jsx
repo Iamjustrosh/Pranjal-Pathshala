@@ -11,6 +11,10 @@ const StudyMaterialForm = () => {
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
+  // Filter states
+  const [filterClass, setFilterClass] = useState('All');
+  const [filterSubject, setFilterSubject] = useState('All');
+
   const materialsCol = collection(db, 'materials');
 
   useEffect(() => { fetchMaterials(); }, []);
@@ -86,6 +90,19 @@ const StudyMaterialForm = () => {
 
   const classOptions = Array.from({length: 10}, (_, i) => (i + 1).toString());
 
+  // Get unique subjects for filter dropdown
+  const subjectOptions = React.useMemo(() => {
+    const allSubjectsSet = new Set(materials.map(m => (m.subject || '').trim()).filter(Boolean));
+    return Array.from(allSubjectsSet);
+  }, [materials]);
+
+  // Filter logic: filter by class and subject
+  const filteredMaterials = materials.filter(m => {
+    const matchesClass = filterClass === 'All' || `${m.class}` === filterClass;
+    const matchesSubject = filterSubject === 'All' || (m.subject && m.subject === filterSubject);
+    return matchesClass && matchesSubject;
+  });
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
@@ -120,8 +137,45 @@ const StudyMaterialForm = () => {
 
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h3 className="font-bold mb-4">Library</h3>
+            {/* Filter Controls */}
+            <div className="mb-4 flex gap-4 flex-wrap">
+                <div>
+                    <label className="text-xs font-medium text-slate-500 mr-2" htmlFor="filter-class">Filter by Class:</label>
+                    <select
+                        id="filter-class"
+                        className="border p-1 rounded bg-white text-sm"
+                        value={filterClass}
+                        onChange={e => setFilterClass(e.target.value)}
+                    >
+                        <option value="All">All</option>
+                        {classOptions.map(c => (
+                            <option key={c} value={c}>{c}</option>
+                        ))}
+                    </select>
+                </div>
+                <div>
+                    <label className="text-xs font-medium text-slate-500 mr-2" htmlFor="filter-subject">Filter by Subject:</label>
+                    <select
+                        id="filter-subject"
+                        className="border p-1 rounded bg-white text-sm"
+                        value={filterSubject}
+                        onChange={e => setFilterSubject(e.target.value)}
+                    >
+                        <option value="All">All</option>
+                        {subjectOptions.map(s => (
+                            <option key={s} value={s}>{s}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+            {/* Material List */}
             <div className="space-y-2 max-h-80 overflow-y-auto">
-                {materials.map(m => (
+                {filteredMaterials.length === 0 && (
+                    <div className="p-3 text-center text-slate-400 text-sm border rounded bg-gray-50">
+                        No study materials found for selected filter.
+                    </div>
+                )}
+                {filteredMaterials.map(m => (
                     <div key={m.id} className="flex justify-between items-center p-3 border rounded hover:bg-slate-50">
                         <div>
                             <p className="font-bold text-sm">{m.title}</p>

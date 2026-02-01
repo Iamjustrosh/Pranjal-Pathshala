@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { db } from '../firebase'; 
 import { addDoc, collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { RiQuestionAnswerLine, RiDeleteBinLine, RiExternalLinkLine, RiEditLine } from 'react-icons/ri';
@@ -7,6 +7,9 @@ const LiveQuizForm = () => {
   const [formData, setFormData] = useState({ title: '', topic: '', link: '', class: '10', board: 'CBSE' });
   const [quizzes, setQuizzes] = useState([]);
   const [editingId, setEditingId] = useState(null);
+
+  // NEW: Add state for filtering quizzes by class
+  const [filterClass, setFilterClass] = useState('All');
 
   const quizCol = collection(db, 'quizzes');
 
@@ -41,6 +44,9 @@ const LiveQuizForm = () => {
     
     setFormData({ title: '', topic: '', link: '', class: '10', board: 'CBSE' });
     fetchQuizzes();
+
+    // NEW: Set filter to the class just used when a quiz is added
+    setFilterClass(formData.class || '10');
   };
 
   const handleEdit = (q) => {
@@ -65,6 +71,12 @@ const LiveQuizForm = () => {
 
   const classOptions = Array.from({length: 10}, (_, i) => (i + 1).toString());
 
+  // NEW: Compute filtered quizzes
+  const filteredQuizzes = useMemo(() => {
+    if (filterClass === 'All') return quizzes;
+    return quizzes.filter(q => String(q.class) === filterClass);
+  }, [quizzes, filterClass]);
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
@@ -88,9 +100,28 @@ const LiveQuizForm = () => {
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h3 className="font-bold mb-4">Active Quizzes</h3>
+            <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+                <h3 className="font-bold">Active Quizzes</h3>
+                <div className="flex items-center gap-1">
+                  <label htmlFor="quiz-class-filter" className="text-xs font-medium text-gray-500 mr-1">Filter by Class:</label>
+                  <select
+                    id="quiz-class-filter"
+                    className="border rounded px-2 py-1 text-xs bg-white"
+                    value={filterClass}
+                    onChange={e => setFilterClass(e.target.value)}
+                  >
+                    <option value="All">All</option>
+                    {classOptions.map(c => (
+                      <option key={c} value={c}>Class {c}</option>
+                    ))}
+                  </select>
+                </div>
+            </div>
             <div className="space-y-2 max-h-80 overflow-y-auto">
-                {quizzes.map(q => (
+                {filteredQuizzes.length === 0 && (
+                  <div className="text-center text-xs text-gray-400 py-6">No quizzes found.</div>
+                )}
+                {filteredQuizzes.map(q => (
                     <div key={q.id} className="flex justify-between items-center p-3 border rounded hover:bg-purple-50">
                         <div>
                             <p className="font-bold text-sm">{q.title}</p>

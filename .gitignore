@@ -49,3 +49,5 @@ coverage/
 # Optional: build cache
 .cache/
 # End of Selection
+src/firebase.js
+src/supabaseClient.js

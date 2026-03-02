@@ -9,7 +9,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 // Pages
 import Home from "./pages/Home";
-import AdmissionForm from "./pages/AdmissionForm";
+import AdmissionForm from "./pages/AdmissionForm"; // Deprecated
 import NewAdmissionForm from "./pages/NewAdmissionForm";
 import AdmissionPDF from "./pages/AdmissionPDF";
 import StudyMaterial from "./pages/StudyMaterial";
@@ -30,7 +30,7 @@ function App() {
         <main className="flex-grow">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/admission" element={<AdmissionForm />} />
+            {/* <Route path="/admission" element={<AdmissionForm />} />   Deprecated */}
             <Route path="/new-admission" element={<NewAdmissionForm />} />
             <Route path="/admission-pdf" element={<AdmissionPDF />} />
             <Route path="/quiz" element={<Quiz />} />

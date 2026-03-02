@@ -9,7 +9,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 // Pages
 import Home from "./pages/Home";
-import AdmissionForm from "./pages/AdmissionForm"; // Deprecated
+// import AdmissionForm from "./pages/AdmissionForm"; // Deprecated
 import NewAdmissionForm from "./pages/NewAdmissionForm";
 import AdmissionPDF from "./pages/AdmissionPDF";
 import StudyMaterial from "./pages/StudyMaterial";

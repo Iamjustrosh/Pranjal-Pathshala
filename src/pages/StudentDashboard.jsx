@@ -6,12 +6,23 @@ import { collection, getDocs } from 'firebase/firestore';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { 
   RiLogoutBoxRLine, RiBookOpenLine, RiQuestionAnswerLine, 
-  RiDownloadLine, RiExternalLinkLine, RiTrophyLine, RiTableLine, RiBarChartLine 
+  RiDownloadLine, RiExternalLinkLine, RiTrophyLine, RiTableLine, RiBarChartLine,
+  RiCalendarCheckLine, RiRefreshLine, RiExpandUpDownLine
 } from 'react-icons/ri';
 
 // Card Styles
 const cardBase = "relative bg-white border border-slate-100 rounded-2xl p-4 flex justify-between items-center transition-all duration-300 shadow-sm";
 const cardHover = "hover:-translate-y-1 hover:shadow-md hover:border-blue-200";
+
+// ─── IMPORTANT ───────────────────────────────────────────────────────────────
+// Replace the value below with your actual Google Sheet publish URL.
+// Steps to get it:
+//   1. Open your Google Sheet → File → Share → Publish to web
+//   2. Choose "Entire Document" + "Web page" → Click "Publish"
+//   3. Copy the URL and paste it here
+// ─────────────────────────────────────────────────────────────────────────────
+const ATTENDANCE_SHEET_URL =
+  "https://docs.google.com/spreadsheets/d/1wFdGhXMf5biwrQ4g4G8PS_2e3suzuOBrwNACRPCSfX8/edit?usp=sharing";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -27,6 +38,10 @@ const StudentDashboard = () => {
 
   // Subject filter for study materials
   const [materialSubject, setMaterialSubject] = useState('All');
+
+  // Attendance sheet controls
+  const [attendanceExpanded, setAttendanceExpanded] = useState(false);
+  const [iframeKey, setIframeKey] = useState(0); // used to force-reload iframe
 
   useEffect(() => {
     const stored = localStorage.getItem('studentUser');
@@ -112,7 +127,6 @@ const StudentDashboard = () => {
 
   // --- SUBJECT LIST FOR FILTER ---
   const materialSubjects = React.useMemo(() => {
-    // unique list of subjects, ignore missing
     const subs = materials
       .map(m => m.subject)
       .filter(Boolean)
@@ -303,6 +317,100 @@ const StudentDashboard = () => {
                 </div>
             </div>
         </div>
+
+        {/* ── ATTENDANCE SECTION ─────────────────────────────────────────────── */}
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+
+          {/* Section Header */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-6 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="bg-emerald-50 p-2.5 rounded-xl">
+                <RiCalendarCheckLine size={22} className="text-emerald-500" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-slate-800">Attendance Register</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Live data from the class attendance sheet</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              {/* Reload button */}
+              <button
+                onClick={() => setIframeKey(k => k + 1)}
+                title="Refresh sheet"
+                className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-emerald-600 bg-slate-100 hover:bg-emerald-50 px-3 py-2 rounded-lg transition"
+              >
+                <RiRefreshLine size={16} /> Refresh
+              </button>
+
+              {/* Expand / Collapse button */}
+              <button
+                onClick={() => setAttendanceExpanded(v => !v)}
+                title={attendanceExpanded ? 'Collapse' : 'Expand'}
+                className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 px-3 py-2 rounded-lg transition"
+              >
+                <RiExpandUpDownLine size={16} />
+                {attendanceExpanded ? 'Collapse' : 'Expand'}
+              </button>
+            </div>
+          </div>
+
+          {/* Embedded Google Sheet iframe */}
+          <div
+            className="transition-all duration-500 ease-in-out overflow-hidden"
+            style={{ height: attendanceExpanded ? '600px' : '380px' }}
+          >
+            {ATTENDANCE_SHEET_URL.includes('YOUR_SHEET_ID') ? (
+              /* ── Placeholder shown until the real URL is configured ── */
+              <div className="h-full flex flex-col items-center justify-center gap-4 bg-slate-50 text-slate-400 px-6 text-center">
+                <RiCalendarCheckLine size={48} className="text-slate-300" />
+                <div>
+                  <p className="font-semibold text-slate-500 text-base">Sheet not configured yet</p>
+                  <p className="text-sm mt-1 max-w-sm">
+                    Replace <code className="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded text-xs font-mono">ATTENDANCE_SHEET_URL</code> at the top of this file with your published Google Sheet link to show live attendance data here.
+                  </p>
+                </div>
+                <a
+                  href="https://support.google.com/docs/answer/37579"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:underline"
+                >
+                  <RiExternalLinkLine size={14}/> How to publish a Google Sheet
+                </a>
+              </div>
+            ) : (
+              <iframe
+                key={iframeKey}
+                src={ATTENDANCE_SHEET_URL}
+                title="Attendance Sheet"
+                width="100%"
+                height="100%"
+                frameBorder="0"
+                className="block"
+                loading="lazy"
+              />
+            )}
+          </div>
+
+          {/* Footer hint */}
+          <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
+            <p className="text-xs text-slate-400">
+              Data is pulled live from Google Sheets. Hit <strong>Refresh</strong> if it looks outdated.
+            </p>
+            {!ATTENDANCE_SHEET_URL.includes('YOUR_SHEET_ID') && (
+              <a
+                href={ATTENDANCE_SHEET_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:underline shrink-0"
+              >
+                <RiExternalLinkLine size={13}/> Open in Sheets
+              </a>
+            )}
+          </div>
+        </div>
+        {/* ── END ATTENDANCE SECTION ────────────────────────────────────────── */}
 
       </div>
     </div>

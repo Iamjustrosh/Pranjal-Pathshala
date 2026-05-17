@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Hero from '../components/Hero'
 import star from '../assets/star.png'
 import bookbulb from '../assets/book-bulb.png'
@@ -7,6 +7,7 @@ import sandclock from '../assets/sand-clock.png'
 import getInTouch from '../assets/getInTouch.png'
 import Testimonial from '../components/Testimonial'
 import { Link } from 'react-router-dom'
+import { Target, BookOpen, TrendingUp, Users, Zap, Trophy } from 'lucide-react'
 
 const featureCards = [
   {
@@ -47,9 +48,67 @@ const goodiesList = [
   },
 ];
 
+// ── Updated Phone Mockup data ───────────────────────────────────────────────
+const keyFeatures = [
+  {
+    id: "ncert",
+    icon: BookOpen,
+    title: "NCERT Library",
+    description: "Contains complete NCERT Books and detailed solutions for every chapter.",
+    color: "from-blue-500 to-indigo-600",
+    benefits: ["NCERT Books", "Detailed Solutions", "All Classes"],
+    // Replace with your actual screenshot import, e.g., ncertScreenshot
+    screenshot: "/pic.jpeg", 
+  },
+  {
+    id: "material",
+    icon: Target,
+    title: "Study Material",
+    description: "Personalized study material curated specifically for your class and subjects.",
+    color: "from-purple-500 to-pink-600",
+    benefits: ["Class-wise Content", "Subject Notes", "Expert Curated"],
+    // Replace with your actual screenshot import
+    screenshot: "/pic2.jpeg",
+  },
+  {
+    id: "progress",
+    icon: TrendingUp,
+    title: "Progress Analytics",
+    description: "Get an overall report that contains your test and quiz marks along with attendance.",
+    color: "from-green-500 to-emerald-600",
+    benefits: ["Test Marks", "Quiz Scores", "Attendance"],
+    // Replace with your actual screenshot import
+    screenshot: "/pic3.jpeg",
+  },
+  {
+    id: "quizzes",
+    icon: Trophy,
+    title: "Quizzes and Tests",
+    description: "Access active quizzes and tests in the student panel, organized class-wise for every subject.",
+    color: "from-orange-500 to-red-600",
+    benefits: ["Active Quizzes", "Subject Tests", "Instant Results"],
+    // Replace with your actual screenshot import
+    screenshot: "/pic4.jpeg",
+  },
+];
+// ─────────────────────────────────────────────────────────────────────────────
+
 const Home = () => {
+  const [activeTab, setActiveTab] = useState("ncert")
+
+  // Auto-rotate feature tabs every 4 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveTab(prev => {
+        const idx = keyFeatures.findIndex(f => f.id === prev)
+        return keyFeatures[(idx + 1) % keyFeatures.length].id
+      })
+    }, 4000)
+    return () => clearInterval(interval)
+  }, [])
+
   return (
-    <div className=" min-h-screen bg-gradient-to-br from-[#EEF2FF] via-[#FFFFFF] to-[#E0F2FE] ">
+    <div className="min-h-screen bg-gradient-to-br from-[#EEF2FF] via-[#FFFFFF] to-[#E0F2FE]">
 
       {/* Hero Section */}
       <section className="py-16">
@@ -102,6 +161,123 @@ const Home = () => {
         </div>
       </section>
 
+      {/* ── PHONE MOCKUP WITH INTERACTIVE FEATURES ──────────── */}
+      <section className="py-24 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
+
+        {/* Subtle background blobs */}
+        <div className="absolute top-10 left-0 w-72 h-72 bg-blue-300/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-10 right-0 w-56 h-56 bg-purple-300/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
+
+          {/* Section heading */}
+          <h1 className="text-4xl md:text-6xl poppins-black leading-tight text-center mb-16 tracking-tight">
+            Everything You Need to{" "}
+            <span className="text-[#3B82F6] drop-shadow-[0_8px_22px_rgba(59,130,246,0.35)]">Succeed</span>
+          </h1>
+
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+
+            {/* ── Phone Mockup ── */}
+            <div className="relative flex justify-center">
+              <div className="relative w-80 h-[600px] bg-gray-900 rounded-[3rem] p-2 shadow-2xl">
+                <div className="w-full h-full bg-white rounded-[2.5rem] overflow-hidden relative">
+                  
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 p-4 flex flex-col">
+
+                    {/* Status Bar */}
+                    <div className="flex justify-between items-center mb-4 text-xs text-gray-600 flex-shrink-0 pt-2 px-2">
+                      <span>9:41</span>
+                      <div className="flex space-x-1">
+                        <div className="w-4 h-2 bg-green-500 rounded-sm"></div>
+                        <div className="w-4 h-2 bg-gray-300 rounded-sm"></div>
+                        <div className="w-4 h-2 bg-gray-300 rounded-sm"></div>
+                      </div>
+                    </div>
+
+                    {/* App Header */}
+
+
+                    {/* Feature Content (Screenshots Based on Active Tab) */}
+                    <div className="flex-1 w-full bg-white rounded-2xl shadow-sm border border-white/60 overflow-hidden relative">
+                      {keyFeatures.map((feature) => (
+                        <div
+                          key={feature.id}
+                          className={`absolute inset-0 w-full h-full transition-opacity duration-500 ${
+                            activeTab === feature.id ? "opacity-100 z-10" : "opacity-0 z-0"
+                          }`}
+                        >
+                          <img 
+                            src={feature.screenshot} 
+                            alt={feature.title} 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+
+              {/* Floating badges */}
+              <div className="absolute -top-4 -right-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-2 rounded-xl shadow-lg animate-bounce">
+                <div className="flex items-center space-x-2">
+                  <Trophy className="w-4 h-4" />
+                  <span className="text-sm font-bold">100% Attendance!</span>
+                </div>
+              </div>
+              <div className="absolute -bottom-4 -left-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-xl shadow-lg animate-bounce delay-500">
+                <div className="flex items-center space-x-2">
+                  <Zap className="w-4 h-4" />
+                  <span className="text-sm font-bold">Quiz Master!</span>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Feature Tabs ── */}
+            <div className="space-y-6">
+              <p className="text-lg text-gray-600">
+                Discover powerful features designed specifically for student success
+              </p>
+
+              <div className="space-y-4">
+                {keyFeatures.map((feature) => (
+                  <div
+                    key={feature.id}
+                    className={
+                      "group p-4 rounded-xl cursor-pointer transition-all duration-300 border-2 " +
+                      (activeTab === feature.id
+                        ? "bg-white border-blue-200 shadow-lg"
+                        : "bg-white/50 border-transparent hover:bg-white/80 hover:border-gray-200")
+                    }
+                    onClick={() => setActiveTab(feature.id)}
+                  >
+                    <div className="flex items-start space-x-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 bg-gradient-to-r ${feature.color}`}>
+                        <feature.icon className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1">{feature.title}</h3>
+                        <p className="text-gray-600 text-sm mb-2">{feature.description}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {feature.benefits.map((benefit, idx) => (
+                            <span key={idx} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                              {benefit}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      {/* ── END PHONE MOCKUP SECTION ─────────────────────────────────────────── */}
+
       {/* Goodies */}
       <section className="py-24 relative">
         <div className="absolute top-0 left-0 w-32 h-32 rounded-full bg-[radial-gradient(circle,rgba(96,165,250,0.18)_0%,transparent_75%)] blur-3xl -z-10" />
@@ -121,7 +297,7 @@ const Home = () => {
             </span>
           </h1>
 
-          <div className="w-full flex flex-col md:flex-row gap-12 items-center py-12 px-6 md:px-8 ">
+          <div className="w-full flex flex-col md:flex-row gap-12 items-center py-12 px-6 md:px-8">
             {/* Left */}
             <div className="flex-1 mb-10 md:mb-0 md:pr-12 text-center md:text-left flex flex-col items-center md:items-start">
               <h2 className="text-3xl md:text-4xl poppins-bold text-[#3B82F6] mb-3 drop-shadow-[0_8px_28px_rgba(59,130,246,0.10)]">We Love Surprising Our Learners!</h2>
@@ -146,14 +322,13 @@ const Home = () => {
                     key={idx}
                     className="flex items-center gap-5 p-5 rounded-2xl bg-white shadow hover:shadow-lg border border-yellow-100 hover:border-yellow-200 transition-all duration-150 cursor-pointer group relative overflow-hidden"
                   >
-                    <div className={`text-5xl flex-shrink-0 drop-shadow-xl group-hover:scale-110 transition-transform duration-200 z-10`}>
+                    <div className="text-5xl flex-shrink-0 drop-shadow-xl group-hover:scale-110 transition-transform duration-200 z-10">
                       <img src={goodie.icon} alt="" />
                     </div>
                     <div>
                       <div className="text-lg md:text-xl poppins-semibold text-[#3B82F6] group-hover:text-[#f59e42] transition">{goodie.name}</div>
                       <div className="text-gray-600 text-sm md:text-base">{goodie.desc}</div>
                     </div>
-                    {/* Bubble effect background */}
                     <span className="absolute left-0 top-0 w-20 h-20 bg-[radial-gradient(circle,rgba(251,191,36,0.11)_0%,transparent_80%)] -z-10 blur-sm group-hover:scale-125 transition-all duration-300" />
                   </div>
                 ))}

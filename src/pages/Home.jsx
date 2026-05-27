@@ -7,7 +7,7 @@ import sandclock from '../assets/sand-clock.png'
 import getInTouch from '../assets/getInTouch.png'
 import Testimonial from '../components/Testimonial'
 import { Link } from 'react-router-dom'
-import { Target, BookOpen, TrendingUp, Users, Zap, Trophy } from 'lucide-react'
+import { Target, BookOpen, TrendingUp, Users, Zap, Trophy, Bot } from 'lucide-react'
 
 const featureCards = [
   {
@@ -51,6 +51,16 @@ const goodiesList = [
 // ── Updated Phone Mockup data ───────────────────────────────────────────────
 const keyFeatures = [
   {
+    id: "chatbot",
+    icon: Bot,
+    title: "AI Assistant",
+    description: "Get access to personalized AI Assitant for you doubts.",
+    color: "from-orange-500 to-red-600",
+    benefits: ["Doubt Solving", "24/7 Support", "Simplified Learning"],
+    // Replace with your actual screenshot import
+    screenshot: "/pic5.png",
+  },
+  {
     id: "ncert",
     icon: BookOpen,
     title: "NCERT Library",
@@ -90,6 +100,7 @@ const keyFeatures = [
     // Replace with your actual screenshot import
     screenshot: "/pic4.jpeg",
   },
+  
 ];
 // ─────────────────────────────────────────────────────────────────────────────
 

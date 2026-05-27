@@ -9,6 +9,7 @@ import {
   RiDownloadLine, RiExternalLinkLine, RiTrophyLine, RiTableLine, RiBarChartLine,
   RiCalendarCheckLine, RiRefreshLine, RiExpandUpDownLine
 } from 'react-icons/ri';
+import PranjalChatBot from '../components/PranjalChatBot/PranjalChatBot';
 
 // Card Styles
 const cardBase = "relative bg-white border border-slate-100 rounded-2xl p-4 flex justify-between items-center transition-all duration-300 shadow-sm";
@@ -56,7 +57,7 @@ const PerformancePanel = ({
       </div>
 
       {/* Subject filter */}
-      <div className="flex items-center gap-2 mb-4">
+      {/* <div className="flex items-center gap-2 mb-4">
         <label className="text-xs font-semibold text-slate-500">Subject:</label>
         <select
           value={selectedSubject}
@@ -66,7 +67,7 @@ const PerformancePanel = ({
           <option value="All">All</option>
           {subjects.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
-      </div>
+      </div> */}
 
       {/* Chart or Table */}
       <div className="h-56">
@@ -526,7 +527,7 @@ const StudentDashboard = () => {
           </div>
         </div>
         {/* ── END ATTENDANCE SECTION ────────────────────────────────────────── */}
-
+        <PranjalChatBot/>
       </div>
     </div>
   );

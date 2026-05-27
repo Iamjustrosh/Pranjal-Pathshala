@@ -50,7 +50,7 @@ function App() {
           </Routes>
         </main>
         <Footer />
-        <PranjalChatBot/>
+        {/* <PranjalChatBot/> */}
       </div>
     </AuthProvider>
   );

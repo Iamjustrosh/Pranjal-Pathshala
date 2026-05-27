@@ -21,6 +21,7 @@ import Quiz from "./pages/Quiz";
 
 // Styles
 import 'remixicon/fonts/remixicon.css';
+import PranjalChatBot from './components/PranjalChatBot/PranjalChatBot';
 
 function App() {
   return (
@@ -49,6 +50,7 @@ function App() {
           </Routes>
         </main>
         <Footer />
+        <PranjalChatBot/>
       </div>
     </AuthProvider>
   );

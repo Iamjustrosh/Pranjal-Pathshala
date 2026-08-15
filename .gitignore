@@ -51,3 +51,4 @@ coverage/
 # End of Selection
 src/firebase.js
 src/supabaseClient.js
+android/

@@ -78,8 +78,33 @@ const AdminPanel = () => {
   // --- FETCHERS ---
   const fetchAdmissionRequests = async () => {
     setLoading(true);
-    const { data } = await supabase.from('students').select('*').order('created_at', { ascending: false });
-    if (data) setAdmissionRequests(data);
+
+    const { data: studentsData } = await supabase
+      .from('students')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    const { data: coachingStudentsData } = await supabase
+      .from('coaching_students')
+      .select('id, username, original_student_id, name, class');
+
+    const mappedStudents = (studentsData || []).map((student) => {
+      const linkedStudent = (coachingStudentsData || []).find(
+        (item) => item.original_student_id === student.id
+      );
+
+      if (linkedStudent) {
+        return {
+          ...student,
+          username: linkedStudent.username || student.username,
+          status: student.status === 'enrolled' || linkedStudent.username ? 'enrolled' : student.status,
+        };
+      }
+
+      return student;
+    });
+
+    setAdmissionRequests(mappedStudents);
     setLoading(false);
   };
 
@@ -127,8 +152,7 @@ const AdminPanel = () => {
     const prefix = `PP${yearShort}${classNum}`;
     const { count } = await supabase.from('coaching_students').select('*', { count: 'exact', head: true }).ilike('username', `${prefix}%`);
     const username = `${prefix}${101 + (count || 0)}`;
-    const dobParts = req.dob ? req.dob.split('-') : ['2000','01','01'];
-    const password = `${dobParts[2]}${dobParts[1]}${dobParts[0]}`; 
+    const password = (req.contact_number || '').replace(/\D/g, '');
 
     const newStudent = {
       name: req.student_name, class: req.class, contact_no: req.contact_number,
@@ -137,13 +161,21 @@ const AdminPanel = () => {
     };
 
     const { error } = await supabase.from('coaching_students').insert([newStudent]);
-    if (!error) {
-      await supabase.from('students').update({ status: 'enrolled', username: username }).eq('id', req.id);
-      alert(`Enrolled!\nUser: ${username}\nPass: ${password}`);
-      fetchAdmissionRequests();
-    } else {
-        alert(error.message);
+    if (error) {
+      alert(error.message);
+      return;
     }
+
+    const { error: updateError } = await supabase.from('students').update({ status: 'enrolled', username: username }).eq('id', req.id);
+    if (updateError) {
+      alert(updateError.message);
+      return;
+    }
+
+    const updatedReq = { ...req, status: 'enrolled', username };
+    setAdmissionRequests(prev => prev.map(item => item.id === req.id ? updatedReq : item));
+    alert(`Enrolled!\nUser: ${username}\nPass: ${password}`);
+    fetchAdmissionRequests();
   };
 
   const handleBatchEnroll = async () => {
@@ -189,25 +221,63 @@ const AdminPanel = () => {
 
   const handleUpdateStudentFull = async (e) => {
     e.preventDefault();
-    
-    const { error: err1 } = await supabase.from('coaching_students').update({
-        name: fullStudentData.student_name,
-        class: fullStudentData.class,
-        contact_no: fullStudentData.contact_number,
-        board: fullStudentData.board,
-        username: selectedStudent.username, 
-        dob: selectedStudent.dob
-    }).eq('id', selectedStudent.id);
+
+    const updatedStudentData = {
+        name: fullStudentData.student_name || selectedStudent.name,
+        class: fullStudentData.class || selectedStudent.class,
+        contact_no: fullStudentData.contact_number || selectedStudent.contact_no,
+        board: fullStudentData.board || selectedStudent.board,
+        username: selectedStudent.username || '',
+        dob: fullStudentData.dob || selectedStudent.dob
+    };
+
+    const { error: err1 } = await supabase.from('coaching_students').update(updatedStudentData).eq('id', selectedStudent.id);
 
     if(!err1) {
         if(selectedStudent.original_student_id && fullStudentData.id) {
-            await supabase.from('students').update(fullStudentData).eq('id', fullStudentData.id);
+            await supabase.from('students').update({
+                student_name: fullStudentData.student_name,
+                class: fullStudentData.class,
+                contact_number: fullStudentData.contact_number,
+                board: fullStudentData.board,
+                dob: fullStudentData.dob,
+                status: 'enrolled'
+            }).eq('id', fullStudentData.id);
         }
+
+        setSelectedStudent(prev => ({ ...prev, ...updatedStudentData }));
+        setFullStudentData(prev => ({ ...prev, ...updatedStudentData }));
         alert("Student Updated & Synced!");
         fetchCoachingStudents();
     } else {
         alert(err1.message);
     }
+  };
+
+  const handleDeleteStudent = async (student) => {
+    if(!window.confirm(`Remove ${student.name || student.student_name} from class manager?`)) return;
+
+    const { error: marksError } = await supabase.from('marks').delete().eq('student_id', student.id);
+    if (marksError) {
+      console.error('Unable to delete marks for student:', marksError.message);
+    }
+
+    const { error } = await supabase.from('coaching_students').delete().eq('id', student.id);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    if (student.original_student_id) {
+      await supabase.from('students').update({ status: 'deleted' }).eq('id', student.original_student_id);
+    }
+
+    setSelectedStudent(null);
+    setFullStudentData(null);
+    setStudentMarks([]);
+    fetchCoachingStudents();
+    fetchMarksHistory();
+    alert('Student removed from class manager.');
   };
 
   // --- ACTIONS: RESULTS TAB ---
@@ -354,9 +424,18 @@ const AdminPanel = () => {
             {selectedStudent ? (
                 // FULL STUDENT EDIT FORM + MARKS HISTORY
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="p-4 border-b flex items-center gap-4 bg-slate-50 sticky top-0 z-10">
-                        <button onClick={() => {setSelectedStudent(null); setFullStudentData(null); setStudentMarks([])}} className="p-2 hover:bg-white rounded-full transition"><RiArrowLeftLine size={20}/></button>
-                        <h2 className="font-bold text-lg">Student Profile: {selectedStudent.name}</h2>
+                    <div className="p-4 border-b flex items-center justify-between gap-4 bg-slate-50 sticky top-0 z-10">
+                        <div className="flex items-center gap-4">
+                            <button onClick={() => {setSelectedStudent(null); setFullStudentData(null); setStudentMarks([])}} className="p-2 hover:bg-white rounded-full transition"><RiArrowLeftLine size={20}/></button>
+                            <h2 className="font-bold text-lg">Student Profile: {selectedStudent.name}</h2>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => handleDeleteStudent(selectedStudent)}
+                            className="px-3 py-2 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition"
+                        >
+                            Remove Student
+                        </button>
                     </div>
                     
                     {fullStudentData ? (
@@ -374,7 +453,7 @@ const AdminPanel = () => {
 
                                 <h3 className="md:col-span-2 font-bold text-blue-600 border-b pb-2 pt-2">Login Credentials (Editable)</h3>
                                 <div className="bg-yellow-50 p-3 rounded border border-yellow-200"><label className="text-xs text-yellow-700 uppercase font-bold">Username</label><input className="w-full border p-2 rounded bg-white" value={selectedStudent.username || ''} onChange={e=>setSelectedStudent({...selectedStudent, username: e.target.value})} /></div>
-                                <div className="bg-yellow-50 p-3 rounded border border-yellow-200"><label className="text-xs text-yellow-700 uppercase font-bold">DOB (Password)</label><input type="date" className="w-full border p-2 rounded bg-white" value={selectedStudent.dob || ''} onChange={e=>setSelectedStudent({...selectedStudent, dob: e.target.value})} /></div>
+                                <div className="bg-yellow-50 p-3 rounded border border-yellow-200"><label className="text-xs text-yellow-700 uppercase font-bold">Password</label><input type="text" className="w-full border p-2 rounded bg-white" value={selectedStudent.contact_no || ''} onChange={e=>setSelectedStudent({...selectedStudent, contact_no: e.target.value})} /></div>
 
                                 <div className="md:col-span-2 flex justify-end gap-3 mt-4">
                                     <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 flex items-center gap-2"><RiSave3Line/> Update & Sync</button>
@@ -463,15 +542,32 @@ const AdminPanel = () => {
                     <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><RiGroupLine className="text-blue-500"/> Class Manager</h2>
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {coachingStudents.map(s => (
-                            <div key={s.id} onClick={() => handleViewStudentDetails(s)} className="cursor-pointer bg-white border border-slate-100 p-4 rounded-xl hover:shadow-md hover:border-blue-300 transition group relative">
-                                <div className="flex items-center gap-4">
+                            <div key={s.id} className="bg-white border border-slate-100 p-4 rounded-xl hover:shadow-md hover:border-blue-300 transition group relative">
+                                <div onClick={() => handleViewStudentDetails(s)} className="cursor-pointer flex items-center gap-4">
                                     {s.photo_url ? <img src={s.photo_url} className="w-12 h-12 rounded-full object-cover border"/> : <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">{s.name[0]}</div>}
                                     <div>
                                         <p className="font-bold text-slate-800 group-hover:text-blue-600">{s.name}</p>
                                         <p className="text-xs text-slate-500">{s.class} | {s.board}</p>
                                     </div>
                                 </div>
-                                <div className="absolute top-4 right-4 text-slate-300 group-hover:text-blue-500"><RiEditLine size={20}/></div>
+                                <div className="mt-4 flex justify-end items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleViewStudentDetails(s)}
+                                        className="text-slate-500 hover:text-blue-600 p-2 rounded transition"
+                                        aria-label="Edit student"
+                                    >
+                                        <RiEditLine size={18}/>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeleteStudent(s)}
+                                        className="text-red-500 hover:text-red-600 hover:bg-red-50 p-2 rounded transition"
+                                        aria-label="Delete student"
+                                    >
+                                        <RiDeleteBinLine size={18}/>
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>

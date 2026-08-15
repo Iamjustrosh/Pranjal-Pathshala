@@ -32,7 +32,7 @@ const Contact = () => {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8 md:mb-10 space-y-2">
           <p className="text-xs md:text-sm uppercase tracking-[0.24em] text-slate-500 poppins-medium">
-            We’re Here To Help
+            We're Here To Help
           </p>
           <h1 className="text-3xl md:text-4xl poppins-bold text-slate-900">
             Contact <span className="text-[#3B82F6]">Pranjal Pathshala</span>

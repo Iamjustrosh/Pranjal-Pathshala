@@ -15,7 +15,9 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
-  const [dob, setDob] = useState('');
+  const [contact_no, setcontact_no] = useState('');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [showStudentPassword, setShowStudentPassword] = useState(false);
 
   // Styles
   const inputClass = "w-full border border-slate-200 px-3 py-2.5 rounded-xl text-sm md:text-base bg-white/90 focus:outline-none focus:ring-2 focus:ring-[#60A5FA] focus:border-transparent transition-all duration-200";
@@ -67,18 +69,18 @@ const Login = () => {
         .from('coaching_students')
         .select('*')
         .eq('username', username)
-        .eq('dob', dob)
+        .eq('contact_no', contact_no)
         .single();
 
       if (error || !data) {
-        throw new Error('Invalid Username or Date of Birth');
+        throw new Error('Invalid Username or Password');
       }
 
       // Store session
       localStorage.setItem('studentUser', JSON.stringify(data));
       navigate('/student-dashboard');
     } catch (err) {
-      setError('Invalid Username or Date of Birth');
+      setError('Invalid Username or Password');
     }
     setLoading(false);
   };
@@ -154,10 +156,22 @@ const Login = () => {
               </div>
               <div>
                 <label className={labelClass} htmlFor="password">Password</label>
-                <input
-                  id="password" type="password" placeholder="••••••••"
-                  className={inputClass} value={password} onChange={(e) => setPassword(e.target.value)} required
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showAdminPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    className={`${inputClass} pr-11`} value={password} onChange={(e) => setPassword(e.target.value)} required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAdminPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-3 flex items-center text-xs font-medium text-slate-500 hover:text-slate-700"
+                    aria-label={showAdminPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showAdminPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
               </div>
               <button type="submit" disabled={loading} className={buttonClass}>
                 {loading ? 'Authenticating...' : 'Login'}
@@ -174,13 +188,25 @@ const Login = () => {
               </div>
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <label className={labelClass} htmlFor="dob">Date of Birth</label>
+                  <label className={labelClass} htmlFor="contact_no">Password</label>
                   <span className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Use as Password</span>
                 </div>
-                <input
-                  id="dob" type="date"
-                  className={inputClass} value={dob} onChange={(e) => setDob(e.target.value)} required
-                />
+                <div className="relative">
+                  <input
+                    id="contact_no"
+                    type={showStudentPassword ? 'text' : 'password'}
+                    placeholder="Enter your Password"
+                    className={`${inputClass} pr-11`} value={contact_no} onChange={(e) => setcontact_no(e.target.value)} required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowStudentPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-3 flex items-center text-xs font-medium text-slate-500 hover:text-slate-700"
+                    aria-label={showStudentPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showStudentPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
               </div>
               <button type="submit" disabled={loading} className={buttonClass}>
                 {loading ? 'Verifying...' : 'Login'}

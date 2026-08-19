@@ -8,10 +8,10 @@ const LABS = [
   {
     id: 'oersted',
     number: '01',
-    label: 'Compass & Current',
+    label: 'Compass aur Current',
     chapter: '',
-    tagline: 'Oersted\'s 1820 Experiment',
-    description: 'Discover how a simple current-carrying wire deflects a compass needle. Flip the battery, move the compass closer, and watch the needle swing live.',
+    tagline: 'Oersted ka 1820 Experiment',
+    description: 'Dekho kaise current-carrying wire compass needle ko deflect karta hai. Battery flip karo, compass ko paas lao aur needle ko live swing karte dekho.',
     icon: '🧭',
     color: '#2f7dee',
     dimColor: '#d7e7ff',
@@ -22,10 +22,10 @@ const LABS = [
   {
     id: 'electromagnet',
     number: '02',
-    label: 'Electromagnet',
+    label: 'Electromagnet Banao',
     chapter: '',
-    tagline: 'Build & Control a Magnet',
-    description: 'Wrap a coil around an iron nail and watch it become a magnet. Control the strength by changing turns, battery power, and whats inside the coil.',
+    tagline: 'Magnet banao aur control karo',
+    description: 'Iron nail ke around coil lapeto aur use magnet banta dekho. Turns, battery power aur coil ke andar ka material badal kar strength control karo.',
     icon: '🧲',
     color: '#8b5cf6',
     dimColor: '#ece4ff',
@@ -36,10 +36,10 @@ const LABS = [
   {
     id: 'heating',
     number: '03',
-    label: 'Heating Wire',
+    label: 'Heating Wire ka Magic',
     chapter: '',
-    tagline: 'Joule\'s Heating Effect',
-    description: 'Send current through nichrome, aluminium or copper and watch the wire heat up in real time. See why electric irons and room heaters work.',
+    tagline: 'Joule ka Heating Effect',
+    description: 'Nichrome, aluminium ya copper wire mein current bhejo aur use real time mein heat hote dekho. Samjho electric iron aur room heater kaise kaam karte hain.',
     icon: '🔥',
     color: '#ff7a3d',
     dimColor: '#ffe6da',
@@ -50,10 +50,10 @@ const LABS = [
   {
     id: 'voltaic',
     number: '04',
-    label: 'Lemon Battery',
+    label: 'Lemon Battery Banao',
     chapter: '',
-    tagline: 'Chemical → Electrical Energy',
-    description: 'Dip two different metals into lemon juice and make your own battery! Also explore the inside of a dry cell with an interactive cutaway.',
+    tagline: 'Chemical energy se Electrical energy',
+    description: 'Do different metals ko lemon juice mein dip karke apni battery banao! Interactive cutaway ke saath dry cell ke andar ka structure bhi explore karo.',
     icon: '🍋',
     color: '#1fb15c',
     dimColor: '#dcf6e6',
@@ -75,12 +75,12 @@ function LabsIndex({ onSelect }) {
 
           <h1 className="mb-2.5 text-[clamp(26px,5vw,38px)] font-bold leading-tight tracking-tight text-[#1c2b3f] poppins-bold">
             Pranjal Labs{' '}
-            <span className="font-medium text-[#5c7089]">— Try It Yourself!</span>
+            <span className="font-medium text-[#5c7089]">— Khud Karke Seekho!</span>
           </h1>
 
           <p className="m-0 max-w-[600px] text-[14.5px] leading-relaxed text-[#5c7089]">
-            Pick a lab below and interact with it just like a real science experiment.
-            Tap switches, drag sliders, and read what's happening at every step.
+            Neeche se ek lab choose karo aur real science experiment ki tarah interact karo.
+            Switch dabao, sliders move karo aur har step par kya ho raha hai samjho.
           </p>
         </div>
 
@@ -89,7 +89,7 @@ function LabsIndex({ onSelect }) {
           {[
             { val: '4', label: 'Interactive Labs' },
             { val: '8+', label: 'Controls to Explore' },
-            { val: '0', label: 'Installation Needed' },
+            { val: '0', label: 'Installation Required' },
           ].map(({ val, label }) => (
             <div key={label} className="flex items-center gap-2.5 rounded-[14px] border border-[#dde8f7] bg-white px-[18px] py-2.5 shadow-[0_2px_10px_rgba(47,125,238,0.05)]">
               <span className="text-[22px] font-extrabold text-[#2f7dee] poppins-extrabold">{val}</span>
@@ -106,7 +106,7 @@ function LabsIndex({ onSelect }) {
         </div>
 
         <footer className="mt-12 text-center text-xs text-[#93a5bc]">
-          Made with 💙 by <span className="font-bold text-[#2f7dee]">Pranjal Pathshala</span> · Learn by doing, not just reading
+          Made with 💙 by <span className="font-bold text-[#2f7dee]">Pranjal Pathshala</span> · Sirf padhkar nahi, karke seekho
         </footer>
       </div>
     </div>
@@ -165,7 +165,7 @@ function LabCard({ lab, onSelect }) {
           →
         </div>
         <span className="text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--lab-color)]">
-          Open
+          Open Lab
         </span>
       </div>
     </div>
@@ -207,7 +207,7 @@ function LabView({ labId, onBack }) {
           <div className="ml-auto flex items-center gap-1.5" style={{ '--lab-color': lab.color, '--lab-dim-color': lab.dimColor }}>
             <span className="inline-block h-[7px] w-[7px] animate-pulse rounded-full bg-[var(--lab-color)] ring-[3px] ring-[var(--lab-dim-color)]" />
             <span className="text-[11.5px] font-bold uppercase tracking-[0.1em] text-[var(--lab-color)]">
-              live
+                Live
             </span>
           </div>
         </div>

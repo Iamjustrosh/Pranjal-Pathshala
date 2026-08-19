@@ -4,10 +4,9 @@ import star from '../assets/star.png'
 import bookbulb from '../assets/book-bulb.png'
 import globe from '../assets/globe.png'
 import sandclock from '../assets/sand-clock.png'
-import getInTouch from '../assets/getInTouch.png'
 import Testimonial from '../components/Testimonial'
 import { Link } from 'react-router-dom'
-import { Target, BookOpen, TrendingUp, Users, Zap, Trophy, Bot } from 'lucide-react'
+import { Target, FlaskConical, TrendingUp, Users, Zap, Trophy, Bot } from 'lucide-react'
 
 const featureCards = [
   {
@@ -54,27 +53,26 @@ const keyFeatures = [
     id: "chatbot",
     icon: Bot,
     title: "AI Assistant",
-    description: "Get access to personalized AI Assitant for you doubts.",
+    description: "Get instant help from a personalized AI Assistant for all your doubts.",
     color: "from-orange-500 to-red-600",
-    benefits: ["Doubt Solving", "24/7 Support", "Simplified Learning"],
+    benefits: ["Doubt Solving", "24/7 Support", "Easy Learning"],
     // Replace with your actual screenshot import
     screenshot: "/pic5.png",
   },
   {
-    id: "ncert",
-    icon: BookOpen,
-    title: "NCERT Library",
-    description: "Contains complete NCERT Books and detailed solutions for every chapter.",
-    color: "from-blue-500 to-indigo-600",
-    benefits: ["NCERT Books", "Detailed Solutions", "All Classes"],
-    // Replace with your actual screenshot import, e.g., ncertScreenshot
-    screenshot: "/pic.jpeg", 
+    id: "labs",
+    icon: FlaskConical,
+    title: "Pranjal Labs",
+    description: "Explore interactive science experiments and understand concepts by seeing and doing.",
+    color: "from-blue-500 to-cyan-600",
+    benefits: ["Interactive Experiments", "Physics Concepts", "Learn by Doing"],
+    screenshot: "/labs.png",
   },
   {
     id: "material",
     icon: Target,
     title: "Study Material",
-    description: "Personalized study material curated specifically for your class and subjects.",
+    description: "Get specially curated study material for your class and subjects.",
     color: "from-purple-500 to-pink-600",
     benefits: ["Class-wise Content", "Subject Notes", "Expert Curated"],
     // Replace with your actual screenshot import
@@ -84,9 +82,9 @@ const keyFeatures = [
     id: "progress",
     icon: TrendingUp,
     title: "Progress Analytics",
-    description: "Get an overall report that contains your test and quiz marks along with attendance.",
+    description: "View your overall progress report with test marks, quiz scores, and attendance.",
     color: "from-green-500 to-emerald-600",
-    benefits: ["Test Marks", "Quiz Scores", "Attendance"],
+    benefits: ["Test Marks", "Quiz Scores", "Attendance Report"],
     // Replace with your actual screenshot import
     screenshot: "/pic3.jpeg",
   },
@@ -94,7 +92,7 @@ const keyFeatures = [
     id: "quizzes",
     icon: Trophy,
     title: "Quizzes and Tests",
-    description: "Access active quizzes and tests in the student panel, organized class-wise for every subject.",
+    description: "Access active quizzes and tests organized by class and subject in the student panel.",
     color: "from-orange-500 to-red-600",
     benefits: ["Active Quizzes", "Subject Tests", "Instant Results"],
     // Replace with your actual screenshot import
@@ -105,7 +103,7 @@ const keyFeatures = [
 // ─────────────────────────────────────────────────────────────────────────────
 
 const Home = () => {
-  const [activeTab, setActiveTab] = useState("ncert")
+  const [activeTab, setActiveTab] = useState("labs")
 
   // Auto-rotate feature tabs every 4 seconds
   useEffect(() => {
@@ -241,7 +239,7 @@ const Home = () => {
               <div className="absolute -bottom-4 -left-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-xl shadow-lg animate-bounce delay-500">
                 <div className="flex items-center space-x-2">
                   <Zap className="w-4 h-4" />
-                  <span className="text-sm font-bold">Quiz Master!</span>
+                  <span className="text-sm font-bold">Quiz Champion!</span>
                 </div>
               </div>
             </div>
@@ -249,7 +247,7 @@ const Home = () => {
             {/* ── Feature Tabs ── */}
             <div className="space-y-6">
               <p className="text-lg text-gray-600">
-                Discover powerful features designed specifically for student success
+                Explore powerful features designed for student success
               </p>
 
               <div className="space-y-4">

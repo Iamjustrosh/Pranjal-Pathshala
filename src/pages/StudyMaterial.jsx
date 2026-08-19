@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const NCERT_BOOKS_URL = "https://ncert.nic.in/textbook.php";
 const NCERT_SOLUTIONS_URL = "https://www.learncbse.in/ncert-solutions-2/";
@@ -21,9 +22,9 @@ const StudyMaterial = () => {
             NCERT <span className="text-[#3B82F6]">Library</span>
           </h1>
           <p className="text-sm md:text-base text-slate-600 max-w-2xl mx-auto">
-            Access official textbooks and solutions directly from the source. 
+            Official textbooks aur solutions directly source se access karein.
             <br />
-            <span className="text-slate-400 text-xs mt-2 block">(For coaching specific notes, please login to your Student Dashboard)</span>
+            <span className="text-slate-400 text-xs mt-2 block">(Coaching ke special notes ke liye Student Portal mein login karein)</span>
           </p>
         </div>
 
@@ -45,6 +46,14 @@ const StudyMaterial = () => {
           >
             NCERT Solutions
           </a>
+
+          <Link
+            to="/login"
+            className={`px-8 py-4 rounded-2xl bg-[#eff6ff] border border-blue-200 text-blue-700 font-semibold text-lg ${button3D} ${button3DHover} flex items-center justify-center gap-2`}
+          >
+            <i className="ri-lock-unlock-line" />
+            Pranjal Pathshala Notes
+          </Link>
         </div>
       </div>
     </section>

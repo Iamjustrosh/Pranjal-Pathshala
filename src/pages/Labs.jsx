@@ -9,7 +9,7 @@ const LABS = [
     id: 'oersted',
     number: '01',
     label: 'Compass & Current',
-    chapter: 'Class 8 · Chapter 4 · Electricity',
+    chapter: '',
     tagline: 'Oersted\'s 1820 Experiment',
     description: 'Discover how a simple current-carrying wire deflects a compass needle. Flip the battery, move the compass closer, and watch the needle swing live.',
     icon: '🧭',
@@ -23,7 +23,7 @@ const LABS = [
     id: 'electromagnet',
     number: '02',
     label: 'Electromagnet',
-    chapter: 'Class 8 · Chapter 4 · Electricity',
+    chapter: '',
     tagline: 'Build & Control a Magnet',
     description: 'Wrap a coil around an iron nail and watch it become a magnet. Control the strength by changing turns, battery power, and whats inside the coil.',
     icon: '🧲',
@@ -37,7 +37,7 @@ const LABS = [
     id: 'heating',
     number: '03',
     label: 'Heating Wire',
-    chapter: 'Class 8 · Chapter 4 · Electricity',
+    chapter: '',
     tagline: 'Joule\'s Heating Effect',
     description: 'Send current through nichrome, aluminium or copper and watch the wire heat up in real time. See why electric irons and room heaters work.',
     icon: '🔥',
@@ -51,7 +51,7 @@ const LABS = [
     id: 'voltaic',
     number: '04',
     label: 'Lemon Battery',
-    chapter: 'Class 8 · Chapter 4 · Electricity',
+    chapter: '',
     tagline: 'Chemical → Electrical Energy',
     description: 'Dip two different metals into lemon juice and make your own battery! Also explore the inside of a dry cell with an interactive cutaway.',
     icon: '🍋',
@@ -66,167 +66,93 @@ const LABS = [
 /* ─── Index page ─── */
 function LabsIndex({ onSelect }) {
   return (
-    <div className="min-h-screen" style={{ background: '#f4f8fd' }}>
-      <div style={{ maxWidth: 1080, margin: '0 auto', padding: '32px 16px 80px' }}>
+    <div className="min-h-screen bg-[#f4f8fd]">
+      <div className="mx-auto max-w-[1080px] px-4 pb-20 pt-8">
 
 
         {/* Header */}
-        <div style={{ marginBottom: 36 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <span style={{
-              width: 7, height: 7, borderRadius: '50%', background: '#2f7dee',
-              boxShadow: '0 0 0 3px #d7e7ff', display: 'inline-block',
-              animation: 'blink 1.6s ease-in-out infinite',
-            }} />
-            <span style={{
-              fontFamily: 'Inter,sans-serif', fontWeight: 700, fontSize: 11.5,
-              letterSpacing: '0.14em', textTransform: 'uppercase', color: '#2f7dee',
-            }}>
-              Class 8 · Chapter 4 · Electricity
-            </span>
-          </div>
+        <div className="mb-9">
 
-          <h1 style={{
-            fontFamily: 'Poppins,sans-serif', fontWeight: 700,
-            fontSize: 'clamp(26px,5vw,38px)', margin: '0 0 10px',
-            letterSpacing: '-0.01em', lineHeight: 1.2, color: '#1c2b3f',
-          }}>
-            Magnetic &amp; Heating Effects{' '}
-            <span style={{ color: '#5c7089', fontWeight: 500 }}>— Try It Yourself!</span>
+          <h1 className="mb-2.5 text-[clamp(26px,5vw,38px)] font-bold leading-tight tracking-tight text-[#1c2b3f] poppins-bold">
+            Pranjal Labs{' '}
+            <span className="font-medium text-[#5c7089]">— Try It Yourself!</span>
           </h1>
 
-          <p style={{
-            color: '#5c7089', fontSize: 14.5, maxWidth: 600,
-            lineHeight: 1.65, margin: 0, fontFamily: 'Inter,sans-serif',
-          }}>
+          <p className="m-0 max-w-[600px] text-[14.5px] leading-relaxed text-[#5c7089]">
             Pick a lab below and interact with it just like a real science experiment.
             Tap switches, drag sliders, and read what's happening at every step.
           </p>
         </div>
 
         {/* Stats strip */}
-        <div style={{
-          display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 32,
-        }}>
+        <div className="mb-8 flex flex-wrap gap-3">
           {[
             { val: '4', label: 'Interactive Labs' },
             { val: '8+', label: 'Controls to Explore' },
             { val: '0', label: 'Installation Needed' },
           ].map(({ val, label }) => (
-            <div key={label} style={{
-              background: '#fff', border: '1px solid #dde8f7', borderRadius: 14,
-              padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 10,
-              boxShadow: '0 2px 10px rgba(47,125,238,.05)',
-            }}>
-              <span style={{ fontFamily: 'Poppins,sans-serif', fontWeight: 800, fontSize: 22, color: '#2f7dee' }}>{val}</span>
-              <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 12.5, color: '#5c7089', fontWeight: 500 }}>{label}</span>
+            <div key={label} className="flex items-center gap-2.5 rounded-[14px] border border-[#dde8f7] bg-white px-[18px] py-2.5 shadow-[0_2px_10px_rgba(47,125,238,0.05)]">
+              <span className="text-[22px] font-extrabold text-[#2f7dee] poppins-extrabold">{val}</span>
+              <span className="text-[12.5px] font-medium text-[#5c7089]">{label}</span>
             </div>
           ))}
         </div>
 
         {/* Lab list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {LABS.map((lab, idx) => (
-            <LabCard key={lab.id} lab={lab} idx={idx} onSelect={onSelect} />
+        <div className="flex flex-col gap-3.5">
+          {LABS.map(lab => (
+            <LabCard key={lab.id} lab={lab} onSelect={onSelect} />
           ))}
         </div>
 
-        <footer style={{
-          marginTop: 48, textAlign: 'center',
-          color: '#93a5bc', fontSize: 12, fontFamily: 'Inter,sans-serif',
-        }}>
-          Made with 💙 by <span style={{ color: '#2f7dee', fontWeight: 700 }}>Pranjal Pathshala</span> · Learn by doing, not just reading
+        <footer className="mt-12 text-center text-xs text-[#93a5bc]">
+          Made with 💙 by <span className="font-bold text-[#2f7dee]">Pranjal Pathshala</span> · Learn by doing, not just reading
         </footer>
       </div>
-
-      <style>{`
-        @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.4;} }
-        @keyframes fadein { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:none;} }
-        .lab-card { transition: transform 0.18s ease, box-shadow 0.18s ease; cursor: pointer; }
-        .lab-card:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(47,125,238,.13) !important; }
-        .lab-card:active { transform: translateY(0); }
-      `}</style>
     </div>
   );
 }
 
-function LabCard({ lab, idx, onSelect }) {
+function LabCard({ lab, onSelect }) {
   return (
     <div
-      className="lab-card"
+      className="group relative flex cursor-pointer flex-col items-start gap-4 overflow-hidden rounded-[18px] border border-[#dde8f7] bg-white p-5 shadow-[0_2px_14px_rgba(47,125,238,0.05)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(47,125,238,0.13)] active:translate-y-0 sm:flex-row sm:items-center sm:gap-5"
       onClick={() => onSelect(lab.id)}
-      style={{
-        background: '#fff',
-        border: '1px solid #dde8f7',
-        borderRadius: 18,
-        padding: '20px 22px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 20,
-        boxShadow: '0 2px 14px rgba(47,125,238,.05)',
-        position: 'relative',
-        overflow: 'hidden',
-        animation: `fadein 0.35s ease ${idx * 0.07}s both`,
-      }}
+      style={{ '--lab-color': lab.color, '--lab-dim-color': lab.dimColor }}
     >
       {/* Accent left bar */}
-      <div style={{
-        position: 'absolute', left: 0, top: 0, bottom: 0,
-        width: 5, borderRadius: '18px 0 0 18px',
-        background: lab.color,
-      }} />
+      <div className="absolute inset-y-0 left-0 w-1.5 rounded-l-[18px] bg-[var(--lab-color)]" />
 
       {/* Icon bubble */}
-      <div style={{
-        width: 60, height: 60, borderRadius: 16, flexShrink: 0,
-        background: lab.dimColor,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 28,
-      }}>
+      <div className="flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-2xl bg-[var(--lab-dim-color)] text-[28px]">
         {lab.icon}
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
-          <span style={{
-            fontFamily: 'Poppins,sans-serif', fontWeight: 800,
-            fontSize: 11, letterSpacing: '0.1em', color: lab.color, textTransform: 'uppercase',
-          }}>
+      <div className="min-w-0 flex-1">
+        <div className="mb-0.5 flex flex-wrap items-baseline gap-2">
+          <span className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-[var(--lab-color)] poppins-extrabold">
             Lab {lab.number}
           </span>
-          <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, color: '#93a5bc' }}>{lab.chapter}</span>
+          <span className="text-[11px] text-[#93a5bc]">{lab.chapter}</span>
         </div>
 
-        <div style={{
-          fontFamily: 'Poppins,sans-serif', fontWeight: 700,
-          fontSize: 17, color: '#1c2b3f', lineHeight: 1.2, marginBottom: 4,
-        }}>
+        <div className="mb-1 text-[17px] font-bold leading-tight text-[#1c2b3f] poppins-bold">
           {lab.label}
         </div>
 
-        <div style={{
-          fontFamily: 'Inter,sans-serif', fontSize: 12, fontWeight: 600,
-          color: lab.color, marginBottom: 5,
-        }}>
+        <div className="mb-1.5 text-xs font-semibold text-[var(--lab-color)]">
           {lab.tagline}
         </div>
 
-        <p style={{
-          fontFamily: 'Inter,sans-serif', fontSize: 13, color: '#5c7089',
-          lineHeight: 1.55, margin: 0, maxWidth: 540,
-        }}>
+        <p className="m-0 max-w-[540px] text-[13px] leading-relaxed text-[#5c7089]">
           {lab.description}
         </p>
 
         {/* Tags */}
-        <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
           {lab.tags.map(tag => (
-            <span key={tag} style={{
-              fontFamily: 'Inter,sans-serif', fontSize: 11, fontWeight: 600,
-              background: lab.dimColor, color: lab.color,
-              padding: '3px 9px', borderRadius: 999,
-            }}>
+            <span key={tag} className="rounded-full bg-[var(--lab-dim-color)] px-[9px] py-[3px] text-[11px] font-semibold text-[var(--lab-color)]">
               {tag}
             </span>
           ))}
@@ -234,22 +160,11 @@ function LabCard({ lab, idx, onSelect }) {
       </div>
 
       {/* Arrow CTA */}
-      <div style={{
-        flexShrink: 0, display: 'flex', flexDirection: 'column',
-        alignItems: 'center', gap: 4,
-      }}>
-        <div style={{
-          width: 40, height: 40, borderRadius: 12,
-          background: lab.dimColor, border: `1.5px solid ${lab.color}30`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 18, color: lab.color,
-        }}>
+      <div className="flex shrink-0 flex-col items-center gap-1 self-end sm:self-auto">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--lab-color)]/20 bg-[var(--lab-dim-color)] text-lg text-[var(--lab-color)]">
           →
         </div>
-        <span style={{
-          fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 700,
-          color: lab.color, textTransform: 'uppercase', letterSpacing: '0.06em',
-        }}>
+        <span className="text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--lab-color)]">
           Open
         </span>
       </div>
@@ -263,92 +178,51 @@ function LabView({ labId, onBack }) {
   const LabComponent = lab.component;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f8fd' }}>
-      <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 16px 80px' }}>
+    <div className="min-h-screen bg-[#f4f8fd]">
+      <div className="mx-auto max-w-[1080px] px-4 pb-20 pt-6">
 
         {/* Top bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22 }}>
+        <div className="mb-[22px] flex items-center gap-3.5">
           <button
             onClick={onBack}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 7,
-              background: '#fff', border: '1.5px solid #dde8f7',
-              borderRadius: 10, padding: '9px 14px',
-              fontFamily: 'Inter,sans-serif', fontWeight: 700, fontSize: 13,
-              color: '#1c2b3f', cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(47,125,238,.07)',
-              transition: 'border-color 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = lab.color}
-            onMouseLeave={e => e.currentTarget.style.borderColor = '#dde8f7'}
+            className="flex items-center gap-1.5 rounded-[10px] border-[1.5px] border-[#dde8f7] bg-white px-3.5 py-2.5 text-[13px] font-bold text-[#1c2b3f] shadow-[0_2px_8px_rgba(47,125,238,0.07)] transition hover:border-[#2f7dee]"
           >
             ← All Labs
           </button>
 
           {/* Breadcrumb */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-            <span style={{
-              width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-              background: lab.dimColor, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', fontSize: 15,
-            }}>{lab.icon}</span>
-            <div style={{ minWidth: 0 }}>
-              <div style={{
-                fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 700,
-                color: lab.color, textTransform: 'uppercase', letterSpacing: '0.1em',
-              }}>
+          <div className="flex min-w-0 items-center gap-2" style={{ '--lab-color': lab.color, '--lab-dim-color': lab.dimColor }}>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--lab-dim-color)] text-[15px]">{lab.icon}</span>
+            <div className="min-w-0">
+              <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--lab-color)]">
                 Lab {lab.number}
               </div>
-              <div style={{
-                fontFamily: 'Poppins,sans-serif', fontSize: 14, fontWeight: 700,
-                color: '#1c2b3f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-              }}>
+              <div className="truncate whitespace-nowrap text-sm font-bold text-[#1c2b3f] poppins-bold">
                 {lab.label}
               </div>
             </div>
           </div>
 
           {/* Live indicator */}
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{
-              width: 7, height: 7, borderRadius: '50%', background: lab.color,
-              boxShadow: `0 0 0 3px ${lab.dimColor}`,
-              animation: 'blink 1.6s ease-in-out infinite', display: 'inline-block',
-            }} />
-            <span style={{
-              fontFamily: 'Inter,sans-serif', fontSize: 11.5, fontWeight: 700,
-              color: lab.color, textTransform: 'uppercase', letterSpacing: '0.1em',
-            }}>
+          <div className="ml-auto flex items-center gap-1.5" style={{ '--lab-color': lab.color, '--lab-dim-color': lab.dimColor }}>
+            <span className="inline-block h-[7px] w-[7px] animate-pulse rounded-full bg-[var(--lab-color)] ring-[3px] ring-[var(--lab-dim-color)]" />
+            <span className="text-[11.5px] font-bold uppercase tracking-[0.1em] text-[var(--lab-color)]">
               live
             </span>
           </div>
         </div>
 
         {/* Lab header */}
-        <div style={{
-          background: lab.dimColor, border: `1px solid ${lab.color}30`,
-          borderRadius: 16, padding: '16px 20px', marginBottom: 4,
-        }}>
-          <div style={{
-            fontFamily: 'Poppins,sans-serif', fontWeight: 800,
-            fontSize: 'clamp(20px,4vw,28px)', color: '#1c2b3f', marginBottom: 4,
-          }}>
+        <div className="mb-1 rounded-2xl border border-[var(--lab-color)]/20 bg-[var(--lab-dim-color)] px-5 py-4" style={{ '--lab-color': lab.color, '--lab-dim-color': lab.dimColor }}>
+          <div className="mb-1 text-[clamp(20px,4vw,28px)] font-extrabold text-[#1c2b3f] poppins-extrabold">
             {lab.label}
           </div>
-          <div style={{
-            fontFamily: 'Inter,sans-serif', fontSize: 13.5,
-            color: '#5c7089', lineHeight: 1.55,
-          }}>
+          <div className="text-[13.5px] leading-relaxed text-[#5c7089]">
             {lab.description}
           </div>
-          <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
             {lab.tags.map(tag => (
-              <span key={tag} style={{
-                fontFamily: 'Inter,sans-serif', fontSize: 11, fontWeight: 600,
-                background: '#fff', color: lab.color,
-                padding: '3px 9px', borderRadius: 999,
-                border: `1px solid ${lab.color}30`,
-              }}>
+              <span key={tag} className="rounded-full border border-[var(--lab-color)]/20 bg-white px-[9px] py-[3px] text-[11px] font-semibold text-[var(--lab-color)]">
                 {tag}
               </span>
             ))}
@@ -356,19 +230,13 @@ function LabView({ labId, onBack }) {
         </div>
 
         {/* The actual lab component */}
-        <div key={labId} style={{ animation: 'fadein 0.3s ease' }}>
+        <div key={labId}>
           <LabComponent />
         </div>
 
         {/* Bottom nav */}
-        <div style={{ marginTop: 28, display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-          <button onClick={onBack} style={{
-            display: 'flex', alignItems: 'center', gap: 7,
-            background: '#fff', border: '1.5px solid #dde8f7',
-            borderRadius: 12, padding: '11px 18px',
-            fontFamily: 'Inter,sans-serif', fontWeight: 700, fontSize: 13,
-            color: '#5c7089', cursor: 'pointer',
-          }}>
+        <div className="mt-7 flex flex-wrap justify-between gap-2.5">
+          <button onClick={onBack} className="flex items-center gap-1.5 rounded-xl border-[1.5px] border-[#dde8f7] bg-white px-[18px] py-[11px] text-[13px] font-bold text-[#5c7089] transition hover:border-[#2f7dee]">
             ← Back to All Labs
           </button>
 
@@ -380,13 +248,8 @@ function LabView({ labId, onBack }) {
             return (
               <button
                 onClick={() => onBack(next.id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  background: next.color, border: 'none',
-                  borderRadius: 12, padding: '11px 18px',
-                  fontFamily: 'Inter,sans-serif', fontWeight: 700, fontSize: 13,
-                  color: '#fff', cursor: 'pointer',
-                }}
+                className="flex items-center gap-2 rounded-xl border-0 bg-[var(--next-color)] px-[18px] py-[11px] text-[13px] font-bold text-white transition hover:brightness-95"
+                style={{ '--next-color': next.color }}
               >
                 <span>{next.icon}</span>
                 Next: {next.label} →
@@ -396,10 +259,6 @@ function LabView({ labId, onBack }) {
         </div>
       </div>
 
-      <style>{`
-        @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.4;} }
-        @keyframes fadein { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:none;} }
-      `}</style>
     </div>
   );
 }

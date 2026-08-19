@@ -11,6 +11,7 @@ const Navbar = () => {
     { name: "Home", path: "/" },
     { name: "Admission Form", path: "/new-admission" },
     { name: "Study Material", path: "/study-material" },
+    { name: "Labs", path: "/labs" },
     { name: "Contact Us", path: "/contact" },
     { name: (<><i className="ri-admin-line mr-1"></i></>), path: "/login" },
   ];
@@ -40,10 +41,9 @@ const Navbar = () => {
               key={link.path}
               to={link.path}
               className={({ isActive }) =>
-                `px-3 py-2 rounded-full flex items-center justify-center gap-2 transition-colors ${
-                  isActive
-                    ? "bg-[#DBEAFE] text-[#1D4ED8] font-semibold"
-                    : "text-slate-700 hover:text-[#1D4ED8] hover:bg-slate-50"
+                `px-3 py-2 rounded-full flex items-center justify-center gap-2 transition-colors ${isActive
+                  ? "bg-[#DBEAFE] text-[#1D4ED8] font-semibold"
+                  : "text-slate-700 hover:text-[#1D4ED8] hover:bg-slate-50"
                 }`
               }
             >
@@ -71,10 +71,9 @@ const Navbar = () => {
                 key={link.path}
                 to={link.path}
                 className={({ isActive }) =>
-                  `w-full px-3 py-2.5 rounded-xl flex items-center justify-between text-sm ${
-                    isActive
-                      ? "bg-[#DBEAFE] text-[#1D4ED8] font-semibold"
-                      : "text-slate-700 hover:bg-slate-50"
+                  `w-full px-3 py-2.5 rounded-xl flex items-center justify-between text-sm ${isActive
+                    ? "bg-[#DBEAFE] text-[#1D4ED8] font-semibold"
+                    : "text-slate-700 hover:bg-slate-50"
                   }`
                 }
                 onClick={() => setIsOpen(false)}

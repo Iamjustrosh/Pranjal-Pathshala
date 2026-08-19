@@ -18,10 +18,12 @@ import AdminPanel from "./pages/AdminPanel";
 import Login from "./pages/Login";
 import StudentDashboard from "./pages/StudentDashboard";
 import Quiz from "./pages/Quiz"; 
+import Labs from './pages/Labs';
 
 // Styles
 import 'remixicon/fonts/remixicon.css';
 import PranjalChatBot from './components/PranjalChatBot/PranjalChatBot';
+
 
 function App() {
   return (
@@ -35,6 +37,7 @@ function App() {
             <Route path="/new-admission" element={<NewAdmissionForm />} />
             <Route path="/admission-pdf" element={<AdmissionPDF />} />
             <Route path="/quiz" element={<Quiz />} />
+            <Route path="/labs" element ={<Labs/>} />
             <Route path="/study-material" element={<StudyMaterial />} />
             <Route path="/contact" element={<Contact />} />
             

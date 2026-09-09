@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { studentId, academicYear, password } = body ?? {};
+    const { studentId, academicYear } = body ?? {};
 
     const parsedStudentId = Number(studentId);
     const parsedAcademicYear = Number(academicYear);
@@ -205,16 +205,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (typeof password !== "string" || password.length < 6) {
-      return jsonResponse(
-        {
-          success: false,
-          error: "Password must contain at least 6 characters",
-        },
-        400
-      );
-    }
-
     // --------------------------------------------------
     // 5. Verify permanent student exists
     // --------------------------------------------------
@@ -223,7 +213,7 @@ Deno.serve(async (req) => {
       await adminJwtClient
         .from("students")
         .select(
-          "id, student_name, class, status, login_username"
+          "id, student_name, class, status, login_username, contact_number"
         )
         .eq("id", parsedStudentId)
         .single();
@@ -236,6 +226,11 @@ Deno.serve(async (req) => {
         },
         404
       );
+    }
+
+    const password = String(student.contact_number ?? '').replace(/\D/g, '');
+    if (password.length < 6) {
+      return jsonResponse({ success: false, error: 'Update the student contact number before enrolling (at least 6 digits required).' }, 400);
     }
 
     // Defensive pre-check.

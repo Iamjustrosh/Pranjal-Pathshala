@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { RiGroupLine } from 'react-icons/ri';
 import { supabase } from '../supabaseClient';
+import { updateAcademicUid, resetStudentPassword } from '../services/studentAccounts';
 import { CURRENT_ACADEMIC_YEAR } from '../config/academicYear';
 import {
   ACADEMIC_STATUSES, academicHistory, closeAcademicRecord, editAcademicRecord,
@@ -10,7 +11,7 @@ import {
 const inputStyle = 'w-full border border-slate-200 p-2 rounded-lg bg-white';
 const buttonStyle = 'px-3 py-2 rounded-lg text-sm font-medium border border-slate-200 hover:bg-blue-50 disabled:opacity-50';
 
-export default function ClassManager() {
+export default function ClassManager({ active = true }) {
   const [filters, setFilters] = useState({ year: String(CURRENT_ACADEMIC_YEAR), classNumber: '', status: 'active' });
   const [search, setSearch] = useState('');
   const [rows, setRows] = useState([]);
@@ -59,6 +60,9 @@ export default function ClassManager() {
   function open(mode, row) {
     setActionError('');
     setFields({
+      uid: row.uid,
+      password: '',
+      confirmPassword: '',
       academic_year: row.academic_year + 1,
       class: row.class < 12 ? row.class + 1 : '',
       board: row.board || '',
@@ -81,7 +85,14 @@ export default function ClassManager() {
         board: fields.board.trim(), school_name: fields.school_name.trim(),
         interested_subjects: fields.subjects.split(',').map(s => s.trim()).filter(Boolean),
       };
-      if (mode === 'promote') {
+      if (mode === 'uid') {
+        await updateAcademicUid(supabase, row, fields.uid);
+        setSuccess('Academic UID updated. Permanent login username is unchanged.');
+      } else if (mode === 'password') {
+        if (fields.password !== fields.confirmPassword) throw new Error('Passwords do not match.');
+        await resetStudentPassword(supabase, row.student_id, fields.password);
+        setSuccess('Student password updated successfully.');
+      } else if (mode === 'promote') {
         const next = await promoteAcademicRecord(supabase, row, {
           ...academic, academic_year: fields.academic_year, class: fields.class,
         });
@@ -95,6 +106,7 @@ export default function ClassManager() {
         setSuccess(`Academic record marked ${mode}. History has been preserved.`);
       }
       setView(null);
+      setFields({});
       setRevision(value => value + 1);
     } catch (err) {
       setActionError(err.message || 'The operation could not be completed. Refresh before retrying if the connection was interrupted.');
@@ -156,6 +168,8 @@ export default function ClassManager() {
             <div className="mt-4 flex flex-wrap gap-2">
               <button className={buttonStyle} onClick={() => open('profile', row)}>View Profile</button>
               <button className={buttonStyle} onClick={() => open('history', row)}>Academic History</button>
+              <button className={buttonStyle} onClick={() => open('uid', row)}>Edit Academic UID</button>
+              <button className={buttonStyle} onClick={() => open('password', row)}>Change Password</button>
               {row.status === 'active' && <>
                 <button className={buttonStyle} onClick={() => open('edit', row)}>Edit Academic Record</button>
                 <button className={`${buttonStyle} text-blue-600`} onClick={() => open('promote', row)}>Promote</button>
@@ -166,7 +180,7 @@ export default function ClassManager() {
           </div>)}
         </div>
       </>}
-      {view && <RecordDialog title={`${({ profile: 'Student Profile', history: 'Academic History', edit: 'Edit Academic Record', promote: 'Promote Student', completed: 'Mark Completed', withdrawn: 'Withdraw Student' })[view.mode]}: ${view.row.student_name}`} saving={saving} onClose={() => setView(null)}>
+      {active && view && <RecordDialog title={`${({ uid: 'Edit Academic UID', password: 'Change Password', profile: 'Student Profile', history: 'Academic History', edit: 'Edit Academic Record', promote: 'Promote Student', completed: 'Mark Completed', withdrawn: 'Withdraw Student' })[view.mode]}: ${view.row.student_name}`} saving={saving} onClose={() => { setView(null); setFields({}); }}>
         <p className="text-sm text-slate-500 mb-4">{view.row.uid} · Class {view.row.class} · {view.row.academic_year} · {view.row.status}</p>
         {view.mode === 'profile' ? <dl className="grid sm:grid-cols-2 gap-4">
           {Object.entries({ Name: view.row.student_name, Contact: view.row.contact_number, 'Parent contact': view.row.parent_contact_number, Email: view.row.email, Board: view.row.board, School: view.row.school_name, Subjects: view.row.interested_subjects?.join(', '), 'Enrolled on': view.row.enrolled_at, 'Completed on': view.row.completed_at }).map(([label, value]) => <div key={label}><dt className="text-xs uppercase text-slate-500">{label}</dt><dd className="break-words">{value || 'Not provided'}</dd></div>)}
@@ -188,13 +202,20 @@ export default function ClassManager() {
               <option value="">Select class</option>{Array.from({ length: 12 }, (_, i) => i + 1).map(n => <option key={n} value={n}>Class {n}</option>)}
             </select></label>
           </>}
-          {['edit', 'promote'].includes(view.mode) ? <>
+          {view.mode === 'uid' ? <>
+            <p className="text-sm text-slate-500">This changes the UID for this academic year only. The permanent login username and result links stay unchanged.</p>
+            <label className="block">Academic UID<input required className={inputStyle} value={fields.uid} onChange={e => setField('uid', e.target.value)} disabled={saving} /></label>
+          </> : view.mode === 'password' ? <>
+            <p className="text-sm text-slate-500">Set a new password for this student's login account across all academic years.</p>
+            <label className="block">New password<input required type="password" autoComplete="new-password" minLength={6} className={inputStyle} value={fields.password} onChange={e => setField('password', e.target.value)} disabled={saving} /></label>
+            <label className="block">Confirm new password<input required type="password" autoComplete="new-password" minLength={6} className={inputStyle} value={fields.confirmPassword} onChange={e => setField('confirmPassword', e.target.value)} disabled={saving} /></label>
+          </> : ['edit', 'promote'].includes(view.mode) ? <>
             <label className="block">Board<input className={inputStyle} value={fields.board} onChange={e => setField('board', e.target.value)} disabled={saving} /></label>
             <label className="block">School<input className={inputStyle} value={fields.school_name} onChange={e => setField('school_name', e.target.value)} disabled={saving} /></label>
             <label className="block">Interested subjects (comma separated)<input className={inputStyle} value={fields.subjects} onChange={e => setField('subjects', e.target.value)} disabled={saving} /></label>
           </> : <p>Mark this academic record as {view.mode}? Its academic history will be retained. This action cannot be reversed from Class Manager.</p>}
           {actionError && <p role="alert" className="text-red-700">{actionError}</p>}
-          <div className="flex justify-end gap-2"><button type="button" className={buttonStyle} disabled={saving} onClick={() => setView(null)}>Cancel</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50" disabled={saving}>{saving ? 'Saving...' : view.mode === 'promote' ? 'Confirm Promotion' : view.mode === 'edit' ? 'Save Changes' : 'Confirm'}</button></div>
+          <div className="flex justify-end gap-2"><button type="button" className={buttonStyle} disabled={saving} onClick={() => { setView(null); setFields({}); }}>Cancel</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50" disabled={saving}>{saving ? 'Saving...' : view.mode === 'promote' ? 'Confirm Promotion' : view.mode === 'edit' ? 'Save Changes' : 'Confirm'}</button></div>
         </form>}
       </RecordDialog>}
     </div>

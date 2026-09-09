@@ -6,6 +6,7 @@ import { supabase } from '../supabaseClient';
 import StudyMaterialForm from '../components/StudyMaterialForm';
 import LiveQuizForm from '../components/LiveQuizForm';
 import ClassManager from '../components/ClassManager';
+import ResultsManager from '../components/ResultsManager';
 
 // ICONS
 import {
@@ -21,19 +22,18 @@ const AdminPanel = () => {
     signOut,
   } = useAuth();
   const [activeTab, setActiveTab] = useState('admissions');
+  const [visitedTabs, setVisitedTabs] = useState({ admissions: true });
+  const selectTab = (tab) => {
+    setVisitedTabs(previous => ({ ...previous, [tab]: true }));
+    setActiveTab(tab);
+  };
 
   // --- DATA STATES ---
   const [admissionRequests, setAdmissionRequests] = useState([]);
-  const [coachingStudents, setCoachingStudents] = useState([]);
-  const [recentMarks, setRecentMarks] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // --- EDIT MODES STATES ---
   const [selectedAdmission, setSelectedAdmission] = useState(null);
-  const [editingMark, setEditingMark] = useState(null);
-
-  // --- FORMS STATE ---
-  const [markData, setMarkData] = useState({ student_id: '', subject: '', exam_type: 'test', marks: '', max_marks: '', exam_date: '' });
 
   // Auth Redirect
   useEffect(() => {
@@ -43,10 +43,6 @@ const AdminPanel = () => {
   // Fetch Data on Tab Change
   useEffect(() => {
     if (activeTab === 'admissions') fetchAdmissionRequests();
-    if (activeTab === 'results') {
-      fetchCoachingStudents();
-      fetchMarksHistory();
-    }
   }, [activeTab]);
 
   // --- FETCHERS ---
@@ -120,16 +116,6 @@ const AdminPanel = () => {
       setLoading(false);
     }
   };
-  const fetchCoachingStudents = async () => {
-    const { data } = await supabase.from('coaching_students').select('*').order('class', { ascending: true });
-    if (data) setCoachingStudents(data);
-  };
-
-  const fetchMarksHistory = async () => {
-    const { data } = await supabase.from('marks').select(`*, coaching_students (name, class)`).order('created_at', { ascending: false }).limit(50);
-    if (data) setRecentMarks(data);
-  };
-
   // --- ACTIONS: ADMISSIONS TAB ---
   const handleUpdateAdmission = async (e) => {
     e.preventDefault();
@@ -213,14 +199,9 @@ const AdminPanel = () => {
       return;
     }
 
-    const password = window.prompt(
-      `Set initial password for ${req.student_name} (minimum 6 characters):`
-    );
-
-    if (password === null) return;
-
+    const password = String(req.contact_number ?? '').replace(/\D/g, '');
     if (password.length < 6) {
-      alert('Password must contain at least 6 characters.');
+      alert('Update the student contact number before enrolling (at least 6 digits required).');
       return;
     }
 
@@ -320,48 +301,6 @@ const AdminPanel = () => {
     else fetchAdmissionRequests();
   };
 
-  // --- ACTIONS: RESULTS TAB ---
-  const handleUploadOrUpdateMark = async (e) => {
-    e.preventDefault();
-    if (editingMark) {
-      const { error } = await supabase.from('marks').update(markData).eq('id', editingMark);
-      if (!error) { alert("Mark Updated!"); setEditingMark(null); }
-      else alert(error.message);
-    } else {
-      const { error } = await supabase.from('marks').insert([markData]);
-      if (!error) alert("Mark Uploaded!");
-      else alert(error.message);
-    }
-    setMarkData({ student_id: '', subject: '', exam_type: 'test', marks: '', max_marks: '', exam_date: '' });
-    fetchMarksHistory();
-  };
-
-  const handleEditMarkClick = (mark) => {
-    setEditingMark(mark.id);
-    setMarkData({
-      student_id: mark.student_id,
-      subject: mark.subject,
-      exam_type: mark.exam_type,
-      marks: mark.marks,
-      max_marks: mark.max_marks,
-      exam_date: mark.exam_date
-    });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // New: Delete mark logic
-  const handleDeleteMark = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this mark?")) return;
-    const { error } = await supabase.from('marks').delete().eq('id', id);
-    if (error) {
-      alert(error.message);
-    } else {
-      alert("Mark deleted!");
-      setEditingMark(null);
-      setMarkData({ student_id: '', subject: '', exam_type: 'test', marks: '', max_marks: '', exam_date: '' });
-      fetchMarksHistory();
-    }
-  };
   const logout = async () => {
     try {
       await signOut();
@@ -389,11 +328,11 @@ const AdminPanel = () => {
 
         {/* --- NAVIGATION TABS --- */}
         <div className="flex flex-wrap gap-2">
-          <TabButton active={activeTab === 'admissions'} onClick={() => setActiveTab('admissions')} label="Admission Requests" icon={<RiUserAddLine />} />
-          <TabButton active={activeTab === 'class_manager'} onClick={() => setActiveTab('class_manager')} label="Class Manager" icon={<RiGroupLine />} />
-          <TabButton active={activeTab === 'results'} onClick={() => setActiveTab('results')} label="Class & Results" icon={<RiFileChartLine />} />
-          <TabButton active={activeTab === 'materials'} onClick={() => setActiveTab('materials')} label="Study Materials" icon={<RiBookOpenLine />} />
-          <TabButton active={activeTab === 'quiz'} onClick={() => setActiveTab('quiz')} label="Live Quizzes" icon={<RiQuestionAnswerLine />} />
+          <TabButton active={activeTab === 'admissions'} onClick={() => selectTab('admissions')} label="Admission Requests" icon={<RiUserAddLine />} />
+          <TabButton active={activeTab === 'class_manager'} onClick={() => selectTab('class_manager')} label="Class Manager" icon={<RiGroupLine />} />
+          <TabButton active={activeTab === 'results'} onClick={() => selectTab('results')} label="Class & Results" icon={<RiFileChartLine />} />
+          <TabButton active={activeTab === 'materials'} onClick={() => selectTab('materials')} label="Study Materials" icon={<RiBookOpenLine />} />
+          <TabButton active={activeTab === 'quiz'} onClick={() => selectTab('quiz')} label="Live Quizzes" icon={<RiQuestionAnswerLine />} />
         </div>
 
         {/* --- 1. ADMISSIONS TAB --- */}
@@ -469,80 +408,14 @@ const AdminPanel = () => {
         )}
 
         {/* --- 2. CLASS MANAGER TAB --- */}
-        {activeTab === 'class_manager' && <ClassManager />}
+        {visitedTabs.class_manager && <div hidden={activeTab !== 'class_manager'}><ClassManager active={activeTab === 'class_manager'} /></div>}
 
         {/* --- 3. RESULTS TAB --- */}
-        {activeTab === 'results' && (
-          <div className="grid lg:grid-cols-2 gap-6">
-            {/* Upload Form */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-fit">
-              <h3 className="text-xl font-bold mb-4 text-slate-800 flex items-center gap-2"><RiFileChartLine className="text-green-600" /> {editingMark ? 'Edit Mark' : 'Upload Marks'}</h3>
-              <form onSubmit={handleUploadOrUpdateMark} className="space-y-4">
-                <select className="w-full border p-3 rounded-lg bg-slate-50" value={markData.student_id} onChange={e => setMarkData({ ...markData, student_id: e.target.value })} required>
-                  <option value="">-- Select Student --</option>
-                  {coachingStudents.map(s => <option key={s.id} value={s.id}>{s.name} ({s.class})</option>)}
-                </select>
-                <div className="flex gap-3">
-                  <select className="w-1/2 border p-3 rounded-lg bg-slate-50" value={markData.exam_type} onChange={e => setMarkData({ ...markData, exam_type: e.target.value })}>
-                    <option value="test">Test</option><option value="exam">Exam</option><option value="quiz">Quiz</option>
-                  </select>
-                  <input type="date" className="w-1/2 border p-3 rounded-lg bg-slate-50" value={markData.exam_date} onChange={e => setMarkData({ ...markData, exam_date: e.target.value })} required />
-                </div>
-                <input className="w-full border p-3 rounded-lg bg-slate-50" placeholder="Subject" value={markData.subject} onChange={e => setMarkData({ ...markData, subject: e.target.value })} required />
-                <div className="flex gap-3">
-                  <input type="number" placeholder="Marks" className="w-1/2 border p-3 rounded-lg bg-slate-50" value={markData.marks} onChange={e => setMarkData({ ...markData, marks: e.target.value })} required />
-                  <input type="number" placeholder="Max" className="w-1/2 border p-3 rounded-lg bg-slate-50" value={markData.max_marks} onChange={e => setMarkData({ ...markData, max_marks: e.target.value })} required />
-                </div>
-                <div className="flex gap-2">
-                  <button className="flex-1 bg-slate-900 text-white py-3 rounded-lg hover:bg-slate-800 font-bold">{editingMark ? 'Update Mark' : 'Submit Result'}</button>
-                  {editingMark && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => { setEditingMark(null); setMarkData({ student_id: '', subject: '', exam_type: 'test', marks: '', max_marks: '', exam_date: '' }) }}
-                        className="px-4 bg-gray-200 rounded-lg font-bold"
-                      >Cancel</button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteMark(editingMark)}
-                        className="px-4 bg-red-500 text-white rounded-lg font-bold flex items-center gap-1 hover:bg-red-600"
-                        title="Delete this mark"
-                      >
-                        <RiDeleteBinLine /> Delete
-                      </button>
-                    </>
-                  )}
-                </div>
-              </form>
-            </div>
-
-            {/* Recent Results Table */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <h3 className="font-bold mb-4 text-slate-700">Marks History (Recent 50)</h3>
-              <div className="overflow-auto max-h-[500px]">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-slate-50 text-slate-500 border-b sticky top-0">
-                    <tr><th className="p-3">Name</th><th className="p-3">Subject</th><th className="p-3">Score</th><th className="p-3">Action</th></tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {recentMarks.map(m => (
-                      <tr key={m.id} className="hover:bg-slate-50">
-                        <td className="p-3 font-medium">{m.coaching_students?.name}</td>
-                        <td className="p-3 text-slate-500">{m.subject} <span className="text-xs border px-1 rounded uppercase">{m.exam_type}</span></td>
-                        <td className="p-3 font-bold text-blue-600">{m.marks}/{m.max_marks}</td>
-                        <td className="p-3"><button onClick={() => handleEditMarkClick(m)} className="text-blue-500 hover:bg-blue-100 p-1 rounded"><RiEditLine /></button></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
+        {visitedTabs.results && <div hidden={activeTab !== 'results'}><ResultsManager /></div>}
 
         {/* --- 4. FIREBASE MODULES --- */}
-        {activeTab === 'materials' && <StudyMaterialForm />}
-        {activeTab === 'quiz' && <LiveQuizForm />}
+        {visitedTabs.materials && <div hidden={activeTab !== 'materials'}><StudyMaterialForm /></div>}
+        {visitedTabs.quiz && <div hidden={activeTab !== 'quiz'}><LiveQuizForm /></div>}
 
       </div>
     </div>

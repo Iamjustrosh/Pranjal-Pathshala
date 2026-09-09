@@ -1,3 +1,7 @@
 [functions.enroll-student]
 entrypoint = "./functions/enroll-student/index.js"
 verify_jwt = true
+
+[functions.update-student-password]
+entrypoint = "./functions/update-student-password/index.js"
+verify_jwt = true

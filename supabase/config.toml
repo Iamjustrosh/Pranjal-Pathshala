@@ -1,0 +1,3 @@
+[functions.enroll-student]
+entrypoint = "./functions/enroll-student/index.js"
+verify_jwt = true

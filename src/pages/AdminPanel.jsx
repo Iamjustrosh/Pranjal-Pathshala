@@ -50,38 +50,76 @@ const AdminPanel = () => {
   }, [activeTab]);
 
   // --- FETCHERS ---
+  // const fetchAdmissionRequests = async () => {
+  //   setLoading(true);
+
+  //   const { data: studentsData } = await supabase
+  //     .from('students')
+  //     .select('*')
+  //     .order('created_at', { ascending: false });
+
+  //   const { data: coachingStudentsData } = await supabase
+  //     .from('coaching_students')
+  //     .select('id, username, original_student_id, name, class');
+
+  //   const mappedStudents = (studentsData || []).map((student) => {
+  //     const linkedStudent = (coachingStudentsData || []).find(
+  //       (item) => item.original_student_id === student.id
+  //     );
+
+  //     if (linkedStudent) {
+  //       return {
+  //         ...student,
+  //         username: linkedStudent.username || student.username,
+  //         status: student.status === 'enrolled' || linkedStudent.username ? 'enrolled' : student.status,
+  //       };
+  //     }
+
+  //     return student;
+  //   });
+
+  //   setAdmissionRequests(mappedStudents);
+  //   setLoading(false);
+  // };
+
   const fetchAdmissionRequests = async () => {
     setLoading(true);
 
-    const { data: studentsData } = await supabase
-      .from('students')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('students')
+        .select(`
+        id,
+        student_name,
+        father_name,
+        mother_name,
+        dob,
+        gender,
+        contact_number,
+        parent_contact_number,
+        email,
+        address,
+        class,
+        school_name,
+        board,
+        interested_subjects,
+        status,
+        photo_url,
+        login_username,
+        created_at
+      `)
+        .order('created_at', { ascending: false });
 
-    const { data: coachingStudentsData } = await supabase
-      .from('coaching_students')
-      .select('id, username, original_student_id, name, class');
+      if (error) throw error;
 
-    const mappedStudents = (studentsData || []).map((student) => {
-      const linkedStudent = (coachingStudentsData || []).find(
-        (item) => item.original_student_id === student.id
-      );
-
-      if (linkedStudent) {
-        return {
-          ...student,
-          username: linkedStudent.username || student.username,
-          status: student.status === 'enrolled' || linkedStudent.username ? 'enrolled' : student.status,
-        };
-      }
-
-      return student;
-    });
-
-    setAdmissionRequests(mappedStudents);
-    setLoading(false);
+      setAdmissionRequests(data || []);
+    } catch (error) {
+      console.error('Failed to fetch admission requests:', error);
+      alert(error.message || 'Failed to load admission requests.');
+    } finally {
+      setLoading(false);
+    }
   };
-
   const fetchCoachingStudents = async () => {
     const { data } = await supabase.from('coaching_students').select('*').order('class', { ascending: true });
     if (data) setCoachingStudents(data);
@@ -115,41 +153,154 @@ const AdminPanel = () => {
     }
   };
 
+  // const handleApproveAndEnroll = async (req) => {
+  //   if (!window.confirm(`Enroll ${req.student_name}?`)) return;
+
+  //   // Generate ID Logic
+  //   const yearShort = new Date().getFullYear().toString().slice(-2);
+  //   let classNum = (req.class || '').replace(/\D/g, '').padStart(2, '0');
+  //   if (classNum === '00') classNum = '10';
+
+  //   const prefix = `PP${yearShort}${classNum}`;
+  //   const { count } = await supabase.from('coaching_students').select('*', { count: 'exact', head: true }).ilike('username', `${prefix}%`);
+  //   const username = `${prefix}${101 + (count || 0)}`;
+  //   const password = (req.contact_number || '').replace(/\D/g, '');
+
+  //   const newStudent = {
+  //     name: req.student_name, class: req.class, contact_no: req.contact_number,
+  //     dob: req.dob, username: username, board: req.board || 'CBSE',
+  //     photo_url: req.photo_url, original_student_id: req.id
+  //   };
+
+  //   const { error } = await supabase.from('coaching_students').insert([newStudent]);
+  //   if (error) {
+  //     alert(error.message);
+  //     return;
+  //   }
+
+  //   const { error: updateError } = await supabase.from('students').update({ status: 'enrolled', username: username }).eq('id', req.id);
+  //   if (updateError) {
+  //     alert(updateError.message);
+  //     return;
+  //   }
+
+  //   const updatedReq = { ...req, status: 'enrolled', username };
+  //   setAdmissionRequests(prev => prev.map(item => item.id === req.id ? updatedReq : item));
+  //   alert(`Enrolled!\nUser: ${username}\nPass: ${password}`);
+  //   fetchAdmissionRequests();
+  // };
+
   const handleApproveAndEnroll = async (req) => {
     if (!window.confirm(`Enroll ${req.student_name}?`)) return;
 
-    // Generate ID Logic
-    const yearShort = new Date().getFullYear().toString().slice(-2);
-    let classNum = (req.class || '').replace(/\D/g, '').padStart(2, '0');
-    if (classNum === '00') classNum = '10';
+    const currentYear = new Date().getFullYear();
 
-    const prefix = `PP${yearShort}${classNum}`;
-    const { count } = await supabase.from('coaching_students').select('*', { count: 'exact', head: true }).ilike('username', `${prefix}%`);
-    const username = `${prefix}${101 + (count || 0)}`;
-    const password = (req.contact_number || '').replace(/\D/g, '');
+    const academicYearInput = window.prompt(
+      `Academic year for ${req.student_name}:`,
+      String(currentYear)
+    );
 
-    const newStudent = {
-      name: req.student_name, class: req.class, contact_no: req.contact_number,
-      dob: req.dob, username: username, board: req.board || 'CBSE',
-      photo_url: req.photo_url, original_student_id: req.id
-    };
+    if (academicYearInput === null) return;
 
-    const { error } = await supabase.from('coaching_students').insert([newStudent]);
-    if (error) {
-      alert(error.message);
+    const academicYear = Number(academicYearInput);
+
+    if (
+      !Number.isInteger(academicYear) ||
+      academicYear < 2000 ||
+      academicYear > 2100
+    ) {
+      alert('Please enter a valid academic year.');
       return;
     }
 
-    const { error: updateError } = await supabase.from('students').update({ status: 'enrolled', username: username }).eq('id', req.id);
-    if (updateError) {
-      alert(updateError.message);
+    const password = window.prompt(
+      `Set initial password for ${req.student_name} (minimum 6 characters):`
+    );
+
+    if (password === null) return;
+
+    if (password.length < 6) {
+      alert('Password must contain at least 6 characters.');
       return;
     }
 
-    const updatedReq = { ...req, status: 'enrolled', username };
-    setAdmissionRequests(prev => prev.map(item => item.id === req.id ? updatedReq : item));
-    alert(`Enrolled!\nUser: ${username}\nPass: ${password}`);
-    fetchAdmissionRequests();
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        'enroll-student',
+        {
+          body: {
+            studentId: req.id,
+            academicYear,
+            password,
+          },
+        }
+      );
+
+      if (error) {
+        // functions.invoke may expose the useful response body
+        // through the error context for non-2xx responses.
+        let message = error.message || 'Failed to enroll student';
+
+        try {
+          if (error.context) {
+            const errorBody = await error.context.json();
+
+            message =
+              errorBody?.details ||
+              errorBody?.error ||
+              message;
+          }
+        } catch {
+          // Keep original error message.
+        }
+
+        throw new Error(message);
+      }
+
+      if (!data?.success) {
+        if (data?.partialSuccess) {
+          console.error('Partial enrollment success:', data);
+
+          alert(
+            `Enrollment partially completed.\n\n` +
+            `${data.error}\n\n` +
+            `Do NOT try to enroll this student again until the database/Auth state is checked.`
+          );
+
+          await fetchAdmissionRequests();
+          return;
+        }
+
+        throw new Error(
+          data?.details ||
+          data?.error ||
+          'Student enrollment failed'
+        );
+      }
+
+      const enrollment = data.enrollment;
+
+      alert(
+        `Student enrolled successfully!\n\n` +
+        `Login Username: ${enrollment.login_username}\n` +
+        `Academic UID: ${enrollment.uid}\n` +
+        `Academic Year: ${enrollment.academic_year}\n\n` +
+        `Initial Password: ${password}`
+      );
+
+      await fetchAdmissionRequests();
+    } catch (error) {
+      console.error('Enrollment failed:', error);
+
+      alert(
+        error.message ||
+        'Failed to enroll student.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleBatchEnroll = async () => {
@@ -251,7 +402,7 @@ const AdminPanel = () => {
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-slate-800">New Admission Requests</h2>
-                <button onClick={handleBatchEnroll} className="bg-purple-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-purple-700 transition text-sm font-semibold flex items-center gap-2">
+                <button onClick={handleBatchEnroll} disabled className="bg-purple-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-purple-700 transition text-sm font-semibold flex items-center gap-2">
                   ⚡ Enroll All Pending
                 </button>
               </div>
@@ -272,7 +423,7 @@ const AdminPanel = () => {
                           <td className="p-4"><span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs font-bold">{req.board}</span></td>
                           <td className="p-4 flex items-center gap-3">
                             {req.status === 'enrolled' ? (
-                              <span className="text-green-600 font-mono text-sm bg-green-50 px-2 py-1 rounded">{req.username}</span>
+                              <span className="text-green-600 font-mono text-sm bg-green-50 px-2 py-1 rounded">{req.login_username}</span>
                             ) : (
                               <button onClick={(e) => { e.stopPropagation(); handleApproveAndEnroll(req) }} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 shadow-sm transition">Enroll</button>
                             )}

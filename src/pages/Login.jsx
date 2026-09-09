@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../firebase';
+
+
+
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 
@@ -34,14 +35,28 @@ const Login = () => {
     }
 
     // 2. Check if Admin is logged in via Firebase
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
+    // const unsubscribe = onAuthStateChanged(auth, (user) => {
+    //   if (user) {
+    //     navigate('/admin', { replace: true });
+    //   } else {
+    //     setCheckingAuth(false);
+    //   }
+    // });
+    // return () => unsubscribe();
+
+    const checkSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session?.user) {
         navigate('/admin', { replace: true });
       } else {
         setCheckingAuth(false);
       }
-    });
-    return () => unsubscribe();
+    };
+
+    checkSession();
   }, [navigate]);
 
   const handleAdminLogin = async (e) => {
@@ -49,7 +64,14 @@ const Login = () => {
     setLoading(true);
     setError('');
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw error;
+      }
       navigate('/admin');
     } catch (err) {
       console.error(err);
@@ -97,7 +119,7 @@ const Login = () => {
     <section className="flex justify-center items-center min-h-[80vh] px-4 py-10">
       <div className="w-full max-w-md">
         <div className="bg-white/95 border border-blue-100/70 rounded-3xl shadow-[0_22px_70px_rgba(148,163,184,0.35)] px-6 py-8 md:px-8 md:py-10 space-y-6">
-          
+
           {/* Header */}
           <div className="text-center space-y-1">
             <p className="text-xs uppercase tracking-[0.24em] text-slate-500 poppins-medium">
@@ -107,8 +129,8 @@ const Login = () => {
               {role === 'admin' ? 'Admin Login' : 'Student Portal'}
             </h2>
             <p className="text-xs md:text-sm text-slate-500">
-              {role === 'admin' 
-                ? 'Enter credentials to manage the system.' 
+              {role === 'admin'
+                ? 'Enter credentials to manage the system.'
                 : 'Login to view your marks and profile.'}
             </p>
           </div>
@@ -117,21 +139,19 @@ const Login = () => {
           <div className="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/60">
             <button
               onClick={() => { setRole('student'); setError(''); }}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
-                role === 'student' 
-                  ? 'bg-white text-blue-600 shadow-md ring-1 ring-black/5' 
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-              }`}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${role === 'student'
+                ? 'bg-white text-blue-600 shadow-md ring-1 ring-black/5'
+                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                }`}
             >
               Student
             </button>
             <button
               onClick={() => { setRole('admin'); setError(''); }}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
-                role === 'admin' 
-                  ? 'bg-white text-blue-600 shadow-md ring-1 ring-black/5' 
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-              }`}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${role === 'admin'
+                ? 'bg-white text-blue-600 shadow-md ring-1 ring-black/5'
+                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                }`}
             >
               Admin
             </button>

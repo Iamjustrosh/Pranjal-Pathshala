@@ -5,14 +5,13 @@ import { supabase } from '../supabaseClient';
 import { auth } from '../firebase';
 import StudyMaterialForm from '../components/StudyMaterialForm';
 import LiveQuizForm from '../components/LiveQuizForm';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import ClassManager from '../components/ClassManager';
 
 // ICONS
 import { 
   RiUserAddLine, RiGroupLine, RiFileChartLine, RiBookOpenLine, 
-  RiQuestionAnswerLine, RiLogoutBoxRLine, RiArrowLeftLine,
-  RiSave3Line, RiDeleteBinLine, RiCloseLine, RiEditLine, RiTrophyLine,
-  RiBarChartLine, RiTableLine
+  RiQuestionAnswerLine, RiLogoutBoxRLine,
+  RiDeleteBinLine, RiCloseLine, RiEditLine
 } from 'react-icons/ri';
 
 const AdminPanel = () => {
@@ -28,16 +27,7 @@ const AdminPanel = () => {
 
   // --- EDIT MODES STATES ---
   const [selectedAdmission, setSelectedAdmission] = useState(null); 
-  const [selectedStudent, setSelectedStudent] = useState(null); 
-  const [fullStudentData, setFullStudentData] = useState(null); 
-  
-  // *** CRITICAL: Initialize as empty array ***
-  const [studentMarks, setStudentMarks] = useState([]); 
-  const [editingMark, setEditingMark] = useState(null); 
-
-  // --- VIEW CONTROLS ---
-  const [graphMode, setGraphMode] = useState('test'); // 'test' or 'quiz'
-  const [viewType, setViewType] = useState('chart'); // 'chart' or 'table'
+  const [editingMark, setEditingMark] = useState(null);
 
   // --- FORMS STATE ---
   const [markData, setMarkData] = useState({ student_id: '', subject: '', exam_type: 'test', marks: '', max_marks: '', exam_date: '' });
@@ -50,30 +40,11 @@ const AdminPanel = () => {
   // Fetch Data on Tab Change
   useEffect(() => {
     if (activeTab === 'admissions') fetchAdmissionRequests();
-    if (activeTab === 'class_manager') fetchCoachingStudents();
     if (activeTab === 'results') {
         fetchCoachingStudents();
         fetchMarksHistory();
     }
   }, [activeTab]);
-
-  // --- FILTERING LOGIC (Copied from StudentDashboard for consistency) ---
-  const filteredMarks = studentMarks.filter(m => {
-      const type = (m.exam_type || '').toLowerCase().trim();
-      if (graphMode === 'test') {
-          return type === 'test' || type === 'exam';
-      } else {
-          return type === 'quiz';
-      }
-  });
-
-  const graphData = filteredMarks.map(m => ({
-      date: m.exam_date,
-      subject: m.subject, 
-      marks: m.marks,
-      max: m.max_marks,
-      percentage: ((m.marks / m.max_marks) * 100).toFixed(1)
-  }));
 
   // --- FETCHERS ---
   const fetchAdmissionRequests = async () => {
@@ -193,91 +164,6 @@ const AdminPanel = () => {
     const { error } = await supabase.from('students').delete().eq('id', id);
     if(error) alert(error.message);
     else fetchAdmissionRequests();
-  };
-
-  // --- ACTIONS: CLASS MANAGER TAB ---
-  
-  const handleViewStudentDetails = async (student) => {
-    setSelectedStudent(student);
-    
-    // Fetch Profile
-    if (student.original_student_id) {
-        const { data } = await supabase.from('students').select('*').eq('id', student.original_student_id).single();
-        if(data) setFullStudentData(data);
-        else setFullStudentData({ student_name: student.name, class: student.class });
-    } else {
-        setFullStudentData({ student_name: student.name, class: student.class }); 
-    }
-
-    // Fetch Marks for this student
-    const { data: marks } = await supabase
-        .from('marks')
-        .select('*')
-        .eq('student_id', student.id)
-        .order('exam_date', { ascending: true }); // Ascending for Chart
-    
-    setStudentMarks(marks || []);
-  };
-
-  const handleUpdateStudentFull = async (e) => {
-    e.preventDefault();
-
-    const updatedStudentData = {
-        name: fullStudentData.student_name || selectedStudent.name,
-        class: fullStudentData.class || selectedStudent.class,
-        contact_no: fullStudentData.contact_number || selectedStudent.contact_no,
-        board: fullStudentData.board || selectedStudent.board,
-        username: selectedStudent.username || '',
-        dob: fullStudentData.dob || selectedStudent.dob
-    };
-
-    const { error: err1 } = await supabase.from('coaching_students').update(updatedStudentData).eq('id', selectedStudent.id);
-
-    if(!err1) {
-        if(selectedStudent.original_student_id && fullStudentData.id) {
-            await supabase.from('students').update({
-                student_name: fullStudentData.student_name,
-                class: fullStudentData.class,
-                contact_number: fullStudentData.contact_number,
-                board: fullStudentData.board,
-                dob: fullStudentData.dob,
-                status: 'enrolled'
-            }).eq('id', fullStudentData.id);
-        }
-
-        setSelectedStudent(prev => ({ ...prev, ...updatedStudentData }));
-        setFullStudentData(prev => ({ ...prev, ...updatedStudentData }));
-        alert("Student Updated & Synced!");
-        fetchCoachingStudents();
-    } else {
-        alert(err1.message);
-    }
-  };
-
-  const handleDeleteStudent = async (student) => {
-    if(!window.confirm(`Remove ${student.name || student.student_name} from class manager?`)) return;
-
-    const { error: marksError } = await supabase.from('marks').delete().eq('student_id', student.id);
-    if (marksError) {
-      console.error('Unable to delete marks for student:', marksError.message);
-    }
-
-    const { error } = await supabase.from('coaching_students').delete().eq('id', student.id);
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    if (student.original_student_id) {
-      await supabase.from('students').update({ status: 'deleted' }).eq('id', student.original_student_id);
-    }
-
-    setSelectedStudent(null);
-    setFullStudentData(null);
-    setStudentMarks([]);
-    fetchCoachingStudents();
-    fetchMarksHistory();
-    alert('Student removed from class manager.');
   };
 
   // --- ACTIONS: RESULTS TAB ---
@@ -419,162 +305,7 @@ const AdminPanel = () => {
         )}
 
         {/* --- 2. CLASS MANAGER TAB --- */}
-        {activeTab === 'class_manager' && (
-          <>
-            {selectedStudent ? (
-                // FULL STUDENT EDIT FORM + MARKS HISTORY
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="p-4 border-b flex items-center justify-between gap-4 bg-slate-50 sticky top-0 z-10">
-                        <div className="flex items-center gap-4">
-                            <button onClick={() => {setSelectedStudent(null); setFullStudentData(null); setStudentMarks([])}} className="p-2 hover:bg-white rounded-full transition"><RiArrowLeftLine size={20}/></button>
-                            <h2 className="font-bold text-lg">Student Profile: {selectedStudent.name}</h2>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => handleDeleteStudent(selectedStudent)}
-                            className="px-3 py-2 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition"
-                        >
-                            Remove Student
-                        </button>
-                    </div>
-                    
-                    {fullStudentData ? (
-                        <div className="p-6">
-                            {/* Profile Form */}
-                            <form onSubmit={handleUpdateStudentFull} className="grid md:grid-cols-2 gap-6 mb-10">
-                                <h3 className="md:col-span-2 font-bold text-blue-600 border-b pb-2 flex items-center gap-2"><RiUserAddLine/> Academic Info</h3>
-                                <div><label className="text-xs text-slate-500 uppercase font-bold">Name</label><input className="w-full border p-2 rounded" value={fullStudentData.student_name || ''} onChange={e=>setFullStudentData({...fullStudentData, student_name: e.target.value})} /></div>
-                                <div><label className="text-xs text-slate-500 uppercase font-bold">Class</label><input className="w-full border p-2 rounded" value={fullStudentData.class || ''} onChange={e=>setFullStudentData({...fullStudentData, class: e.target.value})} /></div>
-                                <div><label className="text-xs text-slate-500 uppercase font-bold">Board</label>
-                                    <select className="w-full border p-2 rounded bg-white" value={fullStudentData.board || 'CBSE'} onChange={e=>setFullStudentData({...fullStudentData, board: e.target.value})}>
-                                        <option>CBSE</option><option>ICSE</option><option>State Board</option>
-                                    </select>
-                                </div>
-
-                                <h3 className="md:col-span-2 font-bold text-blue-600 border-b pb-2 pt-2">Login Credentials (Editable)</h3>
-                                <div className="bg-yellow-50 p-3 rounded border border-yellow-200"><label className="text-xs text-yellow-700 uppercase font-bold">Username</label><input className="w-full border p-2 rounded bg-white" value={selectedStudent.username || ''} onChange={e=>setSelectedStudent({...selectedStudent, username: e.target.value})} /></div>
-                                <div className="bg-yellow-50 p-3 rounded border border-yellow-200"><label className="text-xs text-yellow-700 uppercase font-bold">Password</label><input type="text" className="w-full border p-2 rounded bg-white" value={selectedStudent.contact_no || ''} onChange={e=>setSelectedStudent({...selectedStudent, contact_no: e.target.value})} /></div>
-
-                                <div className="md:col-span-2 flex justify-end gap-3 mt-4">
-                                    <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 flex items-center gap-2"><RiSave3Line/> Update & Sync</button>
-                                </div>
-                            </form>
-
-                            {/* --- PERFORMANCE ANALYTICS SECTION (FIXED & MATCHING STUDENT DASHBOARD) --- */}
-                            <div className="border-t-4 border-slate-100 pt-8">
-                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2"><RiTrophyLine className="text-amber-500"/> Performance & Marks</h3>
-                                    
-                                    <div className="flex gap-2">
-                                        {/* Toggle: Test vs Quiz */}
-                                        <div className="flex bg-slate-100 p-1 rounded-lg">
-                                            <button type="button" onClick={()=>setGraphMode('test')} className={`px-3 py-1 text-xs font-bold rounded-md transition ${graphMode==='test' ? 'bg-white shadow text-blue-600':'text-slate-500'}`}>Tests</button>
-                                            <button type="button" onClick={()=>setGraphMode('quiz')} className={`px-3 py-1 text-xs font-bold rounded-md transition ${graphMode==='quiz' ? 'bg-white shadow text-blue-600':'text-slate-500'}`}>Quizzes</button>
-                                        </div>
-                                        {/* Toggle: Chart vs Table */}
-                                        <div className="flex bg-slate-100 p-1 rounded-lg">
-                                            <button type="button" onClick={()=>setViewType('chart')} className={`p-1.5 rounded-md transition ${viewType==='chart' ? 'bg-white shadow text-blue-600':'text-slate-400'}`}><RiBarChartLine size={18}/></button>
-                                            <button type="button" onClick={()=>setViewType('table')} className={`p-1.5 rounded-md transition ${viewType==='table' ? 'bg-white shadow text-blue-600':'text-slate-400'}`}><RiTableLine size={18}/></button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="h-72 w-full min-h-[300px] [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none" style={{outline: 'none'}}>
-                                    {/* Handle Empty State based on FILTERED marks, not total marks */}
-                                    {filteredMarks.length === 0 ? (
-                                        <div className="h-full flex items-center justify-center text-slate-400 border border-dashed rounded-2xl">
-                                            No {graphMode} records found for this student.
-                                        </div>
-                                    ) : (
-                                        viewType === 'chart' ? (
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <LineChart data={graphData}>
-                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                                                    <XAxis dataKey="subject" tick={{fontSize: 11, fill: '#64748B'}} interval={0} tickMargin={10} />
-                                                    <YAxis domain={[0, 100]} tick={{fontSize: 12, fill: '#64748B'}} axisLine={false} tickLine={false} />
-                                                    <Tooltip 
-                                                        cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '4 4' }}
-                                                        contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}
-                                                        formatter={(value) => [`${value}%`, `Percentage`]}
-                                                        labelFormatter={(label) => `Subject: ${label}`}
-                                                    />
-                                                    <Line 
-                                                        type="monotone" 
-                                                        dataKey="percentage" 
-                                                        stroke="#3B82F6" 
-                                                        strokeWidth={3} 
-                                                        dot={{r: 4, fill:'#3B82F6', strokeWidth:2, stroke:'#fff'}} 
-                                                        activeDot={{r: 6, stroke: 'none'}} 
-                                                    />
-                                                </LineChart>
-                                            </ResponsiveContainer>
-                                        ) : (
-                                            // TABLE VIEW
-                                            <div className="h-full overflow-y-auto pr-2">
-                                                <table className="w-full text-sm text-left border-collapse">
-                                                    <thead className="bg-slate-50 text-slate-500 font-bold sticky top-0">
-                                                        <tr><th className="p-3 rounded-tl-lg">Subject</th><th className="p-3">Date</th><th className="p-3 rounded-tr-lg text-right">Score</th></tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-slate-100">
-                                                        {[...filteredMarks].reverse().map((m) => (
-                                                            <tr key={m.id} className="hover:bg-slate-50 transition">
-                                                                <td className="p-3 font-medium text-slate-700">{m.subject}</td>
-                                                                <td className="p-3 text-slate-500 text-xs">{m.exam_date}</td>
-                                                                <td className="p-3 text-right">
-                                                                    <span className="font-bold text-blue-600">{m.marks}</span>
-                                                                    <span className="text-slate-400 text-xs">/{m.max_marks}</span>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        )
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    ) : <p className="p-10 text-center">Loading Profile...</p>}
-                </div>
-            ) : (
-                // LIST VIEW
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><RiGroupLine className="text-blue-500"/> Class Manager</h2>
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {coachingStudents.map(s => (
-                            <div key={s.id} className="bg-white border border-slate-100 p-4 rounded-xl hover:shadow-md hover:border-blue-300 transition group relative">
-                                <div onClick={() => handleViewStudentDetails(s)} className="cursor-pointer flex items-center gap-4">
-                                    {s.photo_url ? <img src={s.photo_url} className="w-12 h-12 rounded-full object-cover border"/> : <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">{s.name[0]}</div>}
-                                    <div>
-                                        <p className="font-bold text-slate-800 group-hover:text-blue-600">{s.name}</p>
-                                        <p className="text-xs text-slate-500">{s.class} | {s.board}</p>
-                                    </div>
-                                </div>
-                                <div className="mt-4 flex justify-end items-center gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleViewStudentDetails(s)}
-                                        className="text-slate-500 hover:text-blue-600 p-2 rounded transition"
-                                        aria-label="Edit student"
-                                    >
-                                        <RiEditLine size={18}/>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleDeleteStudent(s)}
-                                        className="text-red-500 hover:text-red-600 hover:bg-red-50 p-2 rounded transition"
-                                        aria-label="Delete student"
-                                    >
-                                        <RiDeleteBinLine size={18}/>
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-          </>
-        )}
+        {activeTab === 'class_manager' && <ClassManager />}
 
         {/* --- 3. RESULTS TAB --- */}
         {activeTab === 'results' && (

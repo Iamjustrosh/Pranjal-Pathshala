@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { auth } from '../firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { supabase } from '../supabaseClient';
 
 const AuthContext = createContext();
 
@@ -9,28 +8,42 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null); // Firebase Admin
-  const [studentUser, setStudentUser] = useState(null); // Student
+  const [currentUser, setCurrentUser] = useState(null);
+  const [studentUser, setStudentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Firebase Admin Check
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
+    const initializeAuth = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      setCurrentUser(session?.user ?? null);
+
+      const storedStudent = localStorage.getItem('studentUser');
+
+      if (storedStudent) {
+        try {
+          setStudentUser(JSON.parse(storedStudent));
+        } catch (e) {
+          console.error('Failed to parse student user', e);
+        }
+      }
+
       setLoading(false);
+    };
+
+    initializeAuth();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user ?? null);
     });
 
-    // 2. Student LocalStorage Check
-    const storedStudent = localStorage.getItem('studentUser');
-    if (storedStudent) {
-      try {
-        setStudentUser(JSON.parse(storedStudent));
-      } catch (e) {
-        console.error("Failed to parse student user", e);
-      }
-    }
-    
-    return unsubscribe;
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loginStudent = (data) => {
@@ -44,7 +57,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, studentUser, loginStudent, logoutStudent, loading }}>
+    <AuthContext.Provider
+      value={{
+        currentUser,
+        studentUser,
+        loginStudent,
+        logoutStudent,
+        loading,
+      }}
+    >
       {!loading && children}
     </AuthContext.Provider>
   );

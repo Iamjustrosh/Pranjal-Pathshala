@@ -17,7 +17,7 @@ import Contact from "./pages/Contact";
 import AdminPanel from "./pages/AdminPanel";
 import Login from "./pages/Login";
 import StudentDashboard from "./pages/StudentDashboard";
-import Quiz from "./pages/Quiz"; 
+import Quiz from "./pages/Quiz";
 import Labs from './pages/Labs';
 
 // Styles
@@ -37,18 +37,35 @@ function App() {
             <Route path="/new-admission" element={<NewAdmissionForm />} />
             <Route path="/admission-pdf" element={<AdmissionPDF />} />
             <Route path="/quiz" element={<Quiz />} />
-            <Route path="/labs" element ={<Labs/>} />
+            <Route path="/labs" element={<Labs />} />
             <Route path="/study-material" element={<StudyMaterial />} />
             <Route path="/contact" element={<Contact />} />
-            
+
             {/* Protected Admin Route */}
-            <Route path="/admin" element={
-              <ProtectedRoute>
-                <AdminPanel />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/student-dashboard" element={<StudentDashboard />} />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute
+                  allowedRoles={[
+                    'admin',
+                    'super_admin',
+                  ]}
+                >
+                  <AdminPanel />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/student-dashboard"
+              element={
+                <ProtectedRoute
+                  allowedRoles={['student']}
+                >
+                  <StudentDashboard />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/login" element={<Login />} />
           </Routes>
         </main>

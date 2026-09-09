@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -116,7 +117,7 @@ const PerformancePanel = ({
                   </tr>
                 ))}
               </tbody>
-            </table>  
+            </table>
           </div>
         )}
       </div>
@@ -128,11 +129,20 @@ const PerformancePanel = ({
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const [student, setStudent] = useState(null);
+  const [academicRecord, setAcademicRecord] = useState(null);
+  const [profileError, setProfileError] = useState('');
   const [marks, setMarks] = useState([]);
   const [materials, setMaterials] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
   const [loadingContent, setLoadingContent] = useState(false);
 
+
+  const {
+    appUser,
+    studentId,
+    signOut,
+    loading: authLoading,
+  } = useAuth();
   // View Controls
   // const [graphMode, setGraphMode] = useState('test'); // 'test' or 'quiz'
   // const [viewType, setViewType] = useState('chart'); // 'chart' or 'table'
@@ -151,69 +161,319 @@ const StudentDashboard = () => {
   const [attendanceExpanded, setAttendanceExpanded] = useState(false);
   const [iframeKey, setIframeKey] = useState(0); // used to force-reload iframe
 
-  useEffect(() => {
-    const stored = localStorage.getItem('studentUser');
-    if (!stored) { navigate('/login'); return; }
+  // useEffect(() => {
+  //   const stored = localStorage.getItem('studentUser');
+  //   if (!stored) { navigate('/login'); return; }
 
-    const localData = JSON.parse(stored);
-    fetchFreshData(localData.id);
-  }, [navigate]);
+  //   const localData = JSON.parse(stored);
+  //   fetchFreshData(localData.id);
+  // }, [navigate]);
+
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (
+      !appUser ||
+      appUser.role !== 'student' ||
+      appUser.status !== 'active' ||
+      !studentId
+    ) {
+      return;
+    }
+
+    fetchFreshData(studentId);
+
+  }, [
+    authLoading,
+    appUser?.auth_user_id,
+    appUser?.role,
+    appUser?.status,
+    studentId,
+  ]);
+
 
   // --- HELPER: Normalize Class for Comparison ---
   const normalizeClass = (val) => String(val || '').replace(/\D/g, '').trim();
 
-  const fetchFreshData = async (studentId) => {
-    // 1. Fetch Student Profile
-    const { data: studentData, error } = await supabase
-      .from('coaching_students')
-      .select('*')
-      .eq('id', studentId)
+  // const fetchFreshData = async (studentId) => {
+  //   // 1. Fetch Student Profile
+  //   const { data: studentData, error } = await supabase
+  //     .from('coaching_students')
+  //     .select('*')
+  //     .eq('id', studentId)
+  //     .single();
+
+  //   if (error || !studentData) {
+  //     localStorage.removeItem('studentUser');
+  //     navigate('/login');
+  //     return;
+  //   }
+  //   setStudent(studentData);
+
+  //   // 2. Fetch Marks
+  //   const { data: mData } = await supabase
+  //     .from('marks')
+  //     .select('*')
+  //     .eq('student_id', studentId)
+  //     .order('exam_date', { ascending: true });
+  //   if (mData) setMarks(mData);
+
+  //   // 3. Fetch Firebase Data (Client-Side Filtering)
+  //   setLoadingContent(true);
+  //   try {
+  //     const targetClass = normalizeClass(studentData.class);
+  //     // --- FETCH MATERIALS ---
+  //     const matRef = collection(db, "materials");
+  //     const matSnap = await getDocs(matRef);
+  //     const allMats = matSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+  //     // Filter in Memory
+  //     const myMaterials = allMats.filter(m => normalizeClass(m.class) === targetClass);
+  //     setMaterials(myMaterials);
+
+  //     // --- FETCH QUIZZES ---
+  //     const quizRef = collection(db, "quizzes");
+  //     const quizSnap = await getDocs(quizRef);
+  //     const allQuizzes = quizSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+  //     // Filter in Memory
+  //     const myQuizzes = allQuizzes.filter(q => normalizeClass(q.class) === targetClass);
+  //     setQuizzes(myQuizzes);
+
+  //   } catch (err) {
+  //     console.error("Firebase Fetch Error:", err);
+  //   }
+  //   setLoadingContent(false);
+  // };
+
+  const fetchFreshData = async (permanentStudentId) => {
+    setProfileError('');
+
+    // 1. Permanent student profile
+    const {
+      data: studentData,
+      error: studentError,
+    } = await supabase
+      .from('students')
+      .select(`
+      id,
+      student_name,
+      photo_url,
+      contact_number,
+      parent_contact_number,
+      login_username
+    `)
+      .eq('id', permanentStudentId)
       .single();
 
-    if (error || !studentData) {
-      localStorage.removeItem('studentUser');
-      navigate('/login');
+    if (studentError || !studentData) {
+      console.error(
+        'Failed to load student profile:',
+        studentError
+      );
+
+      setProfileError(
+        'Unable to load your student profile.'
+      );
+
       return;
     }
-    setStudent(studentData);
 
-    // 2. Fetch Marks
-    const { data: mData } = await supabase
-      .from('marks')
-      .select('*')
-      .eq('student_id', studentId)
-      .order('exam_date', { ascending: true });
-    if (mData) setMarks(mData);
+    // 2. Resolve current active academic identity
+    const {
+      data: academicData,
+      error: academicError,
+    } = await supabase
+      .from('student_academic_records')
+      .select(`
+      id,
+      student_id,
+      uid,
+      academic_year,
+      class,
+      board,
+      school_name,
+      interested_subjects,
+      status
+    `)
+      .eq('student_id', permanentStudentId)
+      .eq('status', 'active')
+      .maybeSingle();
 
-    // 3. Fetch Firebase Data (Client-Side Filtering)
+    if (academicError) {
+      console.error(
+        'Failed to load academic record:',
+        academicError
+      );
+
+      setProfileError(
+        'Unable to load your current academic record.'
+      );
+
+      return;
+    }
+
+    if (!academicData) {
+      setProfileError(
+        'No active academic record was found for your account.'
+      );
+
+      return;
+    }
+
+    // Combine permanent + academic data for the existing UI.
+    const dashboardStudent = {
+      ...studentData,
+
+      // Temporary compatibility properties.
+      name: studentData.student_name,
+      username: academicData.uid,
+      class: academicData.class,
+      board: academicData.board,
+
+      academic_record_id: academicData.id,
+      academic_year: academicData.academic_year,
+    };
+
+    setStudent(dashboardStudent);
+    setAcademicRecord(academicData);
+
+    // 3. Load V2 assessment results for the CURRENT academic record.
+    const {
+      data: resultData,
+      error: resultError,
+    } = await supabase
+      .from('assessment_results')
+      .select(`
+        id,
+        marks_obtained,
+        max_marks,
+        status,
+        assessment:assessments (
+          id,
+          title,
+          subject,
+          assessment_type,
+          assessment_date,
+          max_marks,
+          status
+        )
+      `)
+      .eq('student_academic_record_id', academicData.id)
+      .eq('status', 'graded');
+
+    if (resultError) {
+      console.error('Failed to load assessment results:', resultError);
+      setMarks([]);
+    } else {
+      const normalizedMarks = (resultData ?? [])
+        .filter(
+          (row) => row.assessment && row.assessment.status === 'published'
+        )
+        .map((row) => {
+          const marks = row.marks_obtained !== null
+            ? Number(row.marks_obtained)
+            : null;
+          const effectiveMaxMarks = row.max_marks ?? row.assessment.max_marks ?? null;
+          const maxMarks = effectiveMaxMarks !== null ? Number(effectiveMaxMarks) : null;
+          const percentage = marks !== null && maxMarks !== null && maxMarks > 0
+            ? Number(((marks / maxMarks) * 100).toFixed(2))
+            : null;
+
+          return {
+            id: row.id,
+            // The existing PerformancePanel uses subject for labels and filtering.
+            subject: row.assessment.subject?.trim() || row.assessment.title,
+            title: row.assessment.subject?.trim() || row.assessment.title,
+            exam_type: row.assessment.assessment_type,
+            exam_date: row.assessment.assessment_date,
+            marks,
+            max_marks: maxMarks,
+            percentage,
+          };
+        })
+        .sort((a, b) => new Date(a.exam_date).getTime() - new Date(b.exam_date).getTime());
+
+      setMarks(normalizedMarks);
+    }
+
+    // 4. Keep existing Firebase material/quiz system temporarily.
     setLoadingContent(true);
-    try {
-      const targetClass = normalizeClass(studentData.class);
-      // --- FETCH MATERIALS ---
-      const matRef = collection(db, "materials");
-      const matSnap = await getDocs(matRef);
-      const allMats = matSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-      // Filter in Memory
-      const myMaterials = allMats.filter(m => normalizeClass(m.class) === targetClass);
+    try {
+      const targetClass =
+        normalizeClass(academicData.class);
+
+      const matRef = collection(
+        db,
+        'materials'
+      );
+
+      const matSnap =
+        await getDocs(matRef);
+
+      const allMats = matSnap.docs.map(
+        (doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })
+      );
+
+      const myMaterials = allMats.filter(
+        (m) =>
+          normalizeClass(m.class) ===
+          targetClass
+      );
+
       setMaterials(myMaterials);
 
-      // --- FETCH QUIZZES ---
-      const quizRef = collection(db, "quizzes");
-      const quizSnap = await getDocs(quizRef);
-      const allQuizzes = quizSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const quizRef = collection(
+        db,
+        'quizzes'
+      );
 
-      // Filter in Memory
-      const myQuizzes = allQuizzes.filter(q => normalizeClass(q.class) === targetClass);
+      const quizSnap =
+        await getDocs(quizRef);
+
+      const allQuizzes = quizSnap.docs.map(
+        (doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })
+      );
+
+      const myQuizzes = allQuizzes.filter(
+        (q) =>
+          normalizeClass(q.class) ===
+          targetClass
+      );
+
       setQuizzes(myQuizzes);
-
-    } catch (err) {
-      console.error("Firebase Fetch Error:", err);
+    } catch (error) {
+      console.error(
+        'Firebase content fetch error:',
+        error
+      );
+    } finally {
+      setLoadingContent(false);
     }
-    setLoadingContent(false);
   };
 
-  const handleLogout = () => { localStorage.removeItem('studentUser'); navigate('/login'); };
+  const handleLogout = async () => {
+    try {
+      await signOut();
+
+      navigate('/login', {
+        replace: true,
+      });
+    } catch (error) {
+      console.error(
+        'Student logout failed:',
+        error
+      );
+    }
+  };
 
   // --- GRAPH FILTER ---
   // const filteredMarks = marks.filter(m => {
@@ -278,11 +538,25 @@ const StudentDashboard = () => {
     subject: m.subject,
     marks: m.marks,
     max: m.max_marks,
-    percentage: ((m.marks / m.max_marks) * 100).toFixed(1),
+    percentage: m.percentage,
   }));
 
-  if (!student) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400">Loading Profile...</div>;
-  
+  if (profileError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-red-500">
+        {profileError}
+      </div>
+    );
+  }
+
+  if (!student) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400">
+        Loading Profile...
+      </div>
+    );
+  }
+
 
 
 
@@ -527,7 +801,7 @@ const StudentDashboard = () => {
           </div>
         </div>
         {/* ── END ATTENDANCE SECTION ────────────────────────────────────────── */}
-        <PranjalChatBot/>
+        <PranjalChatBot />
       </div>
     </div>
   );

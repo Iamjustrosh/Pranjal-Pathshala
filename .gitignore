@@ -52,3 +52,4 @@ coverage/
 src/firebase.js
 src/supabaseClient.js
 android/
+firebase*/

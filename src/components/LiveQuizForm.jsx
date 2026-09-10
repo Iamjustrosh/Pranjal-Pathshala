@@ -1,141 +1,620 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { db } from '../firebase'; 
-import { addDoc, collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { RiQuestionAnswerLine, RiDeleteBinLine, RiExternalLinkLine, RiEditLine } from 'react-icons/ri';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  RiAddLine,
+  RiDeleteBinLine,
+  RiEditLine,
+  RiExternalLinkLine,
+  RiCloseLine,
+} from 'react-icons/ri';
+
+import { supabase } from '../supabaseClient';
+
+const initialForm = {
+  title: '',
+  subject: '',
+  chapter: '',
+  class: '',
+  board: 'CBSE',
+  url: '',
+  provider: 'google_form',
+  status: 'published',
+};
 
 const LiveQuizForm = () => {
-  const [formData, setFormData] = useState({ title: '', topic: '', link: '', class: '10', board: 'CBSE' });
   const [quizzes, setQuizzes] = useState([]);
+  const [form, setForm] = useState(initialForm);
+
   const [editingId, setEditingId] = useState(null);
 
-  // NEW: Add state for filtering quizzes by class
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
   const [filterClass, setFilterClass] = useState('All');
+  const [filterSubject, setFilterSubject] = useState('All');
 
-  const quizCol = collection(db, 'quizzes');
-
-  useEffect(() => { fetchQuizzes(); }, []);
+  useEffect(() => {
+    fetchQuizzes();
+  }, []);
 
   const fetchQuizzes = async () => {
-    const snap = await getDocs(quizCol);
-    setQuizzes(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-  };
+    setLoading(true);
+    setError('');
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    // SANITIZATION
-    const payload = {
-        title: formData.title || '',
-        topic: formData.topic || '',
-        link: formData.link || '',
-        class: formData.class || '10',
-        board: formData.board || 'CBSE', // Fallback
-        updatedAt: new Date()
-    };
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('quiz_links')
+        .select(`
+          id,
+          title,
+          subject,
+          chapter,
+          class,
+          board,
+          academic_year,
+          url,
+          provider,
+          status,
+          created_at,
+          updated_at
+        `)
+        .order('created_at', { ascending: false });
 
-    if (editingId) {
-        await updateDoc(doc(db, 'quizzes', editingId), payload);
-        alert('Quiz Updated!');
-        setEditingId(null);
-    } else {
-        await addDoc(quizCol, { ...payload, createdAt: new Date() });
-        alert('Quiz Added!');
+      if (fetchError) throw fetchError;
+
+      setQuizzes(data ?? []);
+    } catch (err) {
+      console.error('Failed to load quiz links:', err);
+      setError(err.message || 'Unable to load quizzes.');
+    } finally {
+      setLoading(false);
     }
-    
-    setFormData({ title: '', topic: '', link: '', class: '10', board: 'CBSE' });
-    fetchQuizzes();
-
-    // NEW: Set filter to the class just used when a quiz is added
-    setFilterClass(formData.class || '10');
   };
 
-  const handleEdit = (q) => {
-    setEditingId(q.id);
-    // FIX: Add fallbacks
-    setFormData({ 
-        title: q.title || '', 
-        topic: q.topic || '', 
-        link: q.link || '', 
-        class: q.class || '10', 
-        board: q.board || 'CBSE' 
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const resetForm = () => {
+    setForm(initialForm);
+    setEditingId(null);
+    setError('');
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    setSaving(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const parsedClass = Number(form.class);
+
+      if (
+        !form.title.trim() ||
+        !form.subject.trim() ||
+        !form.class ||
+        !form.url.trim()
+      ) {
+        throw new Error(
+          'Title, subject, class and quiz URL are required.'
+        );
+      }
+
+      if (
+        !Number.isInteger(parsedClass) ||
+        parsedClass < 1 ||
+        parsedClass > 12
+      ) {
+        throw new Error('Class must be between 1 and 12.');
+      }
+
+      const payload = {
+        title: form.title.trim(),
+        subject: form.subject.trim(),
+        chapter: form.chapter.trim() || null,
+        class: parsedClass,
+        board: form.board || null,
+
+        // Existing migrated links are global across academic years.
+        academic_year: null,
+
+        url: form.url.trim(),
+        provider: form.provider,
+        status: form.status,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (editingId) {
+        const { error: updateError } = await supabase
+          .from('quiz_links')
+          .update(payload)
+          .eq('id', editingId);
+
+        if (updateError) throw updateError;
+
+        setSuccess('Quiz updated successfully.');
+      } else {
+        const { error: insertError } = await supabase
+          .from('quiz_links')
+          .insert(payload);
+
+        if (insertError) throw insertError;
+
+        setSuccess('Quiz added successfully.');
+      }
+
+      resetForm();
+      await fetchQuizzes();
+    } catch (err) {
+      console.error('Quiz save failed:', err);
+
+      setError(
+        err.message ||
+          'Unable to save quiz.'
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEdit = (quiz) => {
+    setEditingId(quiz.id);
+
+    setForm({
+      title: quiz.title || '',
+      subject: quiz.subject || '',
+      chapter: quiz.chapter || '',
+      class: String(quiz.class || ''),
+      board: quiz.board || 'CBSE',
+      url: quiz.url || '',
+      provider: quiz.provider || 'google_form',
+      status: quiz.status || 'published',
     });
-    window.scrollTo({top:0, behavior:'smooth'});
+
+    setError('');
+    setSuccess('');
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
   };
 
-  const handleDelete = async (id) => {
-    if(window.confirm('Delete Quiz?')) {
-        await deleteDoc(doc(db, 'quizzes', id));
-        fetchQuizzes();
+  const handleDelete = async (quiz) => {
+    const confirmed = window.confirm(
+      `Delete "${quiz.title}" - ${quiz.chapter || quiz.subject}?`
+    );
+
+    if (!confirmed) return;
+
+    setError('');
+    setSuccess('');
+
+    try {
+      const { error: deleteError } = await supabase
+        .from('quiz_links')
+        .delete()
+        .eq('id', quiz.id);
+
+      if (deleteError) throw deleteError;
+
+      setSuccess('Quiz deleted successfully.');
+
+      if (editingId === quiz.id) {
+        resetForm();
+      }
+
+      await fetchQuizzes();
+    } catch (err) {
+      console.error('Quiz delete failed:', err);
+
+      setError(
+        err.message ||
+          'Unable to delete quiz.'
+      );
     }
   };
 
-  const classOptions = Array.from({length: 10}, (_, i) => (i + 1).toString());
+  const subjects = useMemo(
+    () =>
+      [
+        ...new Set(
+          quizzes
+            .map((quiz) => quiz.subject)
+            .filter(Boolean)
+        ),
+      ].sort(),
+    [quizzes]
+  );
 
-  // NEW: Compute filtered quizzes
   const filteredQuizzes = useMemo(() => {
-    if (filterClass === 'All') return quizzes;
-    return quizzes.filter(q => String(q.class) === filterClass);
-  }, [quizzes, filterClass]);
+    return quizzes.filter((quiz) => {
+      const classMatches =
+        filterClass === 'All' ||
+        String(quiz.class) === filterClass;
+
+      const subjectMatches =
+        filterSubject === 'All' ||
+        quiz.subject === filterSubject;
+
+      return classMatches && subjectMatches;
+    });
+  }, [
+    quizzes,
+    filterClass,
+    filterSubject,
+  ]);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><RiQuestionAnswerLine className="text-purple-600"/> {editingId ? 'Edit Quiz' : 'Add Quiz'}</h2>
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input className="border p-2 rounded" placeholder="Quiz Title" value={formData.title} onChange={e=>setFormData({...formData, title:e.target.value})} required/>
-                <input className="border p-2 rounded" placeholder="Topic" value={formData.topic} onChange={e=>setFormData({...formData, topic:e.target.value})} required/>
-                <div className="flex gap-2">
-                    <select className="border p-2 rounded w-1/2 bg-white" value={formData.class} onChange={e=>setFormData({...formData, class:e.target.value})}>
-                        {classOptions.map(c => <option key={c} value={c}>Class {c}</option>)}
-                    </select>
-                    <select className="border p-2 rounded w-1/2 bg-white" value={formData.board} onChange={e=>setFormData({...formData, board:e.target.value})}>
-                        <option>CBSE</option><option>ICSE</option><option>State Board</option>
-                    </select>
-                </div>
-                <input className="border p-2 rounded md:col-span-2" placeholder="Google Form Link" value={formData.link} onChange={e=>setFormData({...formData, link:e.target.value})} required/>
-                
-                <button className="md:col-span-2 bg-purple-600 text-white py-2 rounded hover:bg-purple-700">{editingId ? 'Update Quiz' : 'Publish Quiz'}</button>
-                {editingId && <button type="button" onClick={()=>{setEditingId(null); setFormData({ title: '', topic: '', link: '', class: '10', board: 'CBSE' })}} className="md:col-span-2 bg-gray-200 py-2 rounded">Cancel Edit</button>}
-            </form>
+    <div className="space-y-6">
+
+      {/* FORM */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800">
+              {editingId
+                ? 'Edit External Quiz'
+                : 'Add External Quiz'}
+            </h2>
+
+            <p className="text-sm text-slate-500 mt-1">
+              Manage Google Form and external quiz links.
+            </p>
+          </div>
+
+          {editingId && (
+            <button
+              type="button"
+              onClick={resetForm}
+              className="p-2 rounded-lg text-slate-500 hover:bg-slate-100"
+            >
+              <RiCloseLine size={20} />
+            </button>
+          )}
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
-                <h3 className="font-bold">Active Quizzes</h3>
-                <div className="flex items-center gap-1">
-                  <label htmlFor="quiz-class-filter" className="text-xs font-medium text-gray-500 mr-1">Filter by Class:</label>
-                  <select
-                    id="quiz-class-filter"
-                    className="border rounded px-2 py-1 text-xs bg-white"
-                    value={filterClass}
-                    onChange={e => setFilterClass(e.target.value)}
-                  >
-                    <option value="All">All</option>
-                    {classOptions.map(c => (
-                      <option key={c} value={c}>Class {c}</option>
-                    ))}
-                  </select>
-                </div>
-            </div>
-            <div className="space-y-2 max-h-80 overflow-y-auto">
-                {filteredQuizzes.length === 0 && (
-                  <div className="text-center text-xs text-gray-400 py-6">No quizzes found.</div>
-                )}
-                {filteredQuizzes.map(q => (
-                    <div key={q.id} className="flex justify-between items-center p-3 border rounded hover:bg-purple-50">
-                        <div>
-                            <p className="font-bold text-sm">{q.title}</p>
-                            <p className="text-xs text-slate-500">{q.board || 'CBSE'} | Class {q.class} | {q.topic}</p>
-                        </div>
-                        <div className="flex gap-2">
-                            <a href={q.link} target="_blank" rel="noreferrer" className="text-purple-500 p-2"><RiExternalLinkLine size={18}/></a>
-                            <button onClick={()=>handleEdit(q)} className="text-yellow-500 p-2"><RiEditLine size={18}/></button>
-                            <button onClick={()=>handleDelete(q.id)} className="text-red-500 p-2"><RiDeleteBinLine size={18}/></button>
-                        </div>
-                    </div>
-                ))}
-            </div>
+        {error && (
+          <div className="mb-4 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-4 rounded-xl bg-green-50 border border-green-100 px-4 py-3 text-sm text-green-700">
+            {success}
+          </div>
+        )}
+
+        <form
+          onSubmit={handleSubmit}
+          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+        >
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Title
+            </label>
+
+            <input
+              name="title"
+              value={form.title}
+              onChange={handleChange}
+              required
+              placeholder="Science"
+              className="w-full px-4 py-2.5 border rounded-xl"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Subject
+            </label>
+
+            <input
+              name="subject"
+              value={form.subject}
+              onChange={handleChange}
+              required
+              placeholder="Science"
+              className="w-full px-4 py-2.5 border rounded-xl"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Chapter
+            </label>
+
+            <input
+              name="chapter"
+              value={form.chapter}
+              onChange={handleChange}
+              placeholder="Chapter 2"
+              className="w-full px-4 py-2.5 border rounded-xl"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Class
+            </label>
+
+            <select
+              name="class"
+              value={form.class}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2.5 border rounded-xl bg-white"
+            >
+              <option value="">
+                Select Class
+              </option>
+
+              {Array.from(
+                { length: 12 },
+                (_, index) => index + 1
+              ).map((classNumber) => (
+                <option
+                  key={classNumber}
+                  value={classNumber}
+                >
+                  Class {classNumber}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Board
+            </label>
+
+            <select
+              name="board"
+              value={form.board}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 border rounded-xl bg-white"
+            >
+              <option value="CBSE">CBSE</option>
+              <option value="ICSE">ICSE</option>
+              <option value="State Board">
+                State Board
+              </option>
+              <option value="Other">
+                Other
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Provider
+            </label>
+
+            <select
+              name="provider"
+              value={form.provider}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 border rounded-xl bg-white"
+            >
+              <option value="google_form">
+                Google Form
+              </option>
+
+              <option value="external">
+                External
+              </option>
+            </select>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Quiz URL
+            </label>
+
+            <input
+              type="url"
+              name="url"
+              value={form.url}
+              onChange={handleChange}
+              required
+              placeholder="https://forms.gle/..."
+              className="w-full px-4 py-2.5 border rounded-xl"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Status
+            </label>
+
+            <select
+              name="status"
+              value={form.status}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 border rounded-xl bg-white"
+            >
+              <option value="published">
+                Published
+              </option>
+
+              <option value="draft">
+                Draft
+              </option>
+
+              <option value="archived">
+                Archived
+              </option>
+            </select>
+          </div>
+
+          <div className="flex items-end">
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-60 text-white px-5 py-2.5 rounded-xl font-medium flex justify-center items-center gap-2"
+            >
+              {editingId ? (
+                <RiEditLine />
+              ) : (
+                <RiAddLine />
+              )}
+
+              {saving
+                ? 'Saving...'
+                : editingId
+                ? 'Update Quiz'
+                : 'Add Quiz'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* QUIZ LIST */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
+          <h3 className="font-bold text-slate-800">
+            External Quizzes ({filteredQuizzes.length})
+          </h3>
+
+          <div className="flex gap-2">
+            <select
+              value={filterClass}
+              onChange={(event) =>
+                setFilterClass(event.target.value)
+              }
+              className="px-3 py-2 border rounded-lg text-sm bg-white"
+            >
+              <option value="All">
+                All Classes
+              </option>
+
+              {Array.from(
+                { length: 12 },
+                (_, index) => index + 1
+              ).map((classNumber) => (
+                <option
+                  key={classNumber}
+                  value={String(classNumber)}
+                >
+                  Class {classNumber}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={filterSubject}
+              onChange={(event) =>
+                setFilterSubject(event.target.value)
+              }
+              className="px-3 py-2 border rounded-lg text-sm bg-white"
+            >
+              <option value="All">
+                All Subjects
+              </option>
+
+              {subjects.map((subject) => (
+                <option
+                  key={subject}
+                  value={subject}
+                >
+                  {subject}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
+
+        {loading ? (
+          <p className="text-center py-10 text-slate-400">
+            Loading quizzes...
+          </p>
+        ) : filteredQuizzes.length === 0 ? (
+          <p className="text-center py-10 text-slate-400">
+            No quiz links found.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {filteredQuizzes.map((quiz) => (
+              <div
+                key={quiz.id}
+                className="border border-slate-100 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4"
+              >
+                <div>
+                  <h4 className="font-semibold text-slate-800">
+                    {quiz.title}
+                  </h4>
+
+                  <div className="text-sm text-slate-500 mt-1">
+                    Class {quiz.class}
+                    {' • '}
+                    {quiz.subject}
+
+                    {quiz.chapter &&
+                      ` • ${quiz.chapter}`}
+
+                    {quiz.board &&
+                      ` • ${quiz.board}`}
+                  </div>
+
+                  <div className="mt-2 flex gap-2">
+                    <span className="text-xs px-2 py-1 bg-purple-50 text-purple-700 rounded-md">
+                      {quiz.provider}
+                    </span>
+
+                    <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-md">
+                      {quiz.status}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <a
+                    href={quiz.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg"
+                    title="Open quiz"
+                  >
+                    <RiExternalLinkLine />
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleEdit(quiz)
+                    }
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                    title="Edit quiz"
+                  >
+                    <RiEditLine />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleDelete(quiz)
+                    }
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                    title="Delete quiz"
+                  >
+                    <RiDeleteBinLine />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

@@ -8,6 +8,9 @@ import {
 } from 'react-icons/ri';
 
 import { supabase } from '../supabaseClient';
+import PostActionNotificationDialog from './admin/PostActionNotificationDialog';
+import { listNotificationStudents } from '../services/notifications';
+import { CURRENT_ACADEMIC_YEAR } from '../config/academicYear';
 
 const initialForm = {
   title: '',
@@ -25,6 +28,7 @@ const LiveQuizForm = () => {
   const [form, setForm] = useState(initialForm);
 
   const [editingId, setEditingId] = useState(null);
+  const [notificationPrompt, setNotificationPrompt] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -88,6 +92,51 @@ const LiveQuizForm = () => {
     setError('');
   };
 
+  const prepareQuizNotification = async ({
+    title,
+    subject,
+    chapter,
+    classNumber,
+    isUpdate = false,
+  }) => {
+    try {
+      const students = await listNotificationStudents(
+        supabase,
+        {
+          year: CURRENT_ACADEMIC_YEAR,
+          classNumber: Number(classNumber),
+        }
+      );
+
+      const activeStudents = students.filter((student) => {
+        const academicStatus =
+          student.academicStatus ?? student.status;
+
+        return academicStatus === 'active';
+      });
+
+      setNotificationPrompt({
+        title,
+        subject,
+        chapter,
+        classNumber: Number(classNumber),
+        isUpdate,
+        recipients: activeStudents.map((student) => ({
+          studentId: student.studentId,
+          academicRecordId: student.academicRecordId,
+        })),
+      });
+    } catch (err) {
+      console.error(
+        'Unable to prepare quiz notification:',
+        err
+      );
+
+      // The quiz has already been saved.
+      // Notification preparation must not roll it back.
+    }
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -97,6 +146,15 @@ const LiveQuizForm = () => {
 
     try {
       const parsedClass = Number(form.class);
+
+      const savedQuiz = {
+        title: form.title.trim(),
+        subject: form.subject.trim(),
+        chapter: form.chapter.trim() || null,
+        classNumber: parsedClass,
+        status: form.status,
+        isUpdate: Boolean(editingId),
+      };
 
       if (
         !form.title.trim() ||
@@ -150,6 +208,11 @@ const LiveQuizForm = () => {
         if (insertError) throw insertError;
 
         setSuccess('Quiz added successfully.');
+      }
+
+      // Only published quizzes should offer a student notification.
+      if (savedQuiz.status === 'published') {
+        await prepareQuizNotification(savedQuiz);
       }
 
       resetForm();
@@ -255,7 +318,8 @@ const LiveQuizForm = () => {
   ]);
 
   return (
-    <div className="space-y-6">
+    <>
+      <div className="space-y-6">
 
       {/* FORM */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
@@ -615,7 +679,38 @@ const LiveQuizForm = () => {
           </div>
         )}
       </div>
-    </div>
+      </div>
+
+      <PostActionNotificationDialog
+        open={Boolean(notificationPrompt)}
+        onClose={() => setNotificationPrompt(null)}
+        type="quiz"
+        priority="normal"
+        title={
+          notificationPrompt
+            ? notificationPrompt.isUpdate
+              ? `${notificationPrompt.title} Quiz Updated`
+              : `New Quiz: ${notificationPrompt.title}`
+            : ''
+        }
+        body={
+          notificationPrompt
+            ? `${notificationPrompt.subject}${
+                notificationPrompt.chapter
+                  ? ` • ${notificationPrompt.chapter}`
+                  : ''
+              } quiz is now available for Class ${notificationPrompt.classNumber}.`
+            : ''
+        }
+        actionUrl="/student-dashboard?tab=quiz"
+        recipients={notificationPrompt?.recipients ?? []}
+        contextLabel={
+          notificationPrompt
+            ? `Class ${notificationPrompt.classNumber} • ${CURRENT_ACADEMIC_YEAR}`
+            : ''
+        }
+      />
+    </>
   );
 };
 

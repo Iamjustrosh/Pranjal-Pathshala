@@ -30,6 +30,9 @@ export default function StudentHeader({
   onAcademicRecordChange,
   switchingAcademicYear = false,
   onLogout,
+  unreadNotificationCount = 0,
+  notificationLoading = false,
+
 }) {
   const [menuOpen, setMenuOpen] =
     useState(false);
@@ -153,14 +156,24 @@ export default function StudentHeader({
                 size={18}
               />
 
-              {/* Temporary until Phase 9 provides unread state */}
-              <span
-                className="
-                  absolute right-1.5 top-1.5
-                  h-2 w-2 rounded-full
-                  bg-red-500 ring-2 ring-white
-                "
-              />
+              {!notificationLoading &&
+                unreadNotificationCount > 0 && (
+                  <span
+                    className="
+        absolute -right-1 -top-1
+        flex min-h-4 min-w-4
+        items-center justify-center
+        rounded-full bg-red-500
+        px-1 text-[9px] font-bold
+        leading-none text-white
+        ring-2 ring-white
+      "
+                  >
+                    {unreadNotificationCount > 99
+                      ? '99+'
+                      : unreadNotificationCount}
+                  </span>
+                )}
             </button>
 
             <div className="relative">
@@ -307,7 +320,7 @@ export default function StudentHeader({
                         )}{' '}
                         • Class {record.class}
                         {record.status ===
-                        'active'
+                          'active'
                           ? ' • Current'
                           : ''}
                       </option>

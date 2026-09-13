@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -18,11 +18,16 @@ import AIPage from '../components/student/AIPage';
 import StudyPage from '../components/student/StudyPage';
 import QuizPage from '../components/student/QuizPage';
 import StudentState from '../components/student/StudentState';
-const ATTENDANCE_SHEET_URL =
-  'https://docs.google.com/spreadsheets/d/1wFdGhXMf5biwrQ4g4G8PS_2e3suzuOBrwNACRPCSfX8/edit?usp=sharing';
+
+import {
+  getUnreadNotificationCount,
+  loadStudentNotifications,
+} from '../services/notifications';
+
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [studentProfile, setStudentProfile] = useState(null);
   const [student, setStudent] = useState(null);
@@ -46,8 +51,30 @@ export default function StudentDashboard() {
   const [testView, setTestView] = useState('chart');
   const [quizView, setQuizView] = useState('chart');
   const [materialSubject, setMaterialSubject] = useState('All');
-  const [iframeKey, setIframeKey] = useState(0);
 
+  const [notifications, setNotifications] = useState([]);
+  const [notificationLoading, setNotificationLoading] =
+    useState(false);
+
+  const fetchNotifications = async () => {
+    try {
+      setNotificationLoading(true);
+
+      const data =
+        await loadStudentNotifications(supabase);
+
+      setNotifications(data ?? []);
+    } catch (error) {
+      console.error(
+        'Failed to load student notifications:',
+        error
+      );
+
+      setNotifications([]);
+    } finally {
+      setNotificationLoading(false);
+    }
+  };
 
   const handleDashboardRetry = async () => {
     if (!studentId) return;
@@ -88,6 +115,23 @@ export default function StudentDashboard() {
     appUser?.status,
     studentId,
   ]);
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+
+    const tab = params.get('tab');
+
+    const allowedTabs = [
+      'performance',
+      'attendance',
+      'study',
+      'quiz',
+      'ai',
+    ];
+
+    if (allowedTabs.includes(tab)) {
+      setActivePage(tab);
+    }
+  }, [location.search]);
 
   const initializeDashboard = async (permanentStudentId) => {
     setProfileError('');
@@ -177,7 +221,10 @@ export default function StudentDashboard() {
       setStudentProfile(studentData);
       setAcademicRecords(records);
 
-      await fetchAcademicYearPerformance(records);
+      await Promise.all([
+        fetchAcademicYearPerformance(records),
+        fetchNotifications(),
+      ]);
 
       await applyAcademicRecord(
         studentData,
@@ -668,17 +715,25 @@ export default function StudentDashboard() {
         : '',
     }));
 
+  const unreadNotificationCount = useMemo(
+    () =>
+      getUnreadNotificationCount(
+        notifications
+      ),
+    [notifications]
+  );
+
+
   const renderPage = () => {
     switch (activePage) {
       case 'attendance':
         return (
           <AttendancePage
-            sheetUrl={ATTENDANCE_SHEET_URL}
-            iframeKey={iframeKey}
-            onRefresh={() =>
-              setIframeKey(
-                (value) => value + 1
-              )
+            academicRecordId={
+              academicRecord?.id
+            }
+            academicYear={
+              academicRecord?.academic_year
             }
           />
         );
@@ -803,6 +858,13 @@ export default function StudentDashboard() {
               switchingAcademicYear
             }
             onLogout={handleLogout}
+
+            unreadNotificationCount={
+              unreadNotificationCount
+            }
+            notificationLoading={
+              notificationLoading
+            }
           />
           {switchingAcademicYear && (
             <div

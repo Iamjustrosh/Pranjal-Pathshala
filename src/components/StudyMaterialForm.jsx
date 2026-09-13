@@ -1,6 +1,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
+import PostActionNotificationDialog from './admin/PostActionNotificationDialog';
+import { listNotificationStudents } from '../services/notifications';
+import { CURRENT_ACADEMIC_YEAR } from '../config/academicYear';
 import {
   RiDeleteBinLine,
   RiBookOpenLine,
@@ -21,6 +24,7 @@ const StudyMaterialForm = () => {
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [notificationPrompt, setNotificationPrompt] = useState(null);
 
   const [filterClass, setFilterClass] = useState('All');
   const [filterSubject, setFilterSubject] = useState('All');
@@ -75,12 +79,59 @@ const StudyMaterialForm = () => {
     return data.publicUrl;
   };
 
+  const prepareMaterialNotification = async ({
+    title,
+    classNumber,
+    isUpdate = false,
+  }) => {
+    try {
+      const students = await listNotificationStudents(
+        supabase,
+        {
+          year: CURRENT_ACADEMIC_YEAR,
+          classNumber: Number(classNumber),
+        }
+      );
+
+      const activeStudents = students.filter((student) => {
+        const academicStatus =
+          student.academicStatus ?? student.status;
+
+        return academicStatus === 'active';
+      });
+
+      setNotificationPrompt({
+        title,
+        classNumber: Number(classNumber),
+        isUpdate,
+        recipients: activeStudents.map((student) => ({
+          studentId: student.studentId,
+          academicRecordId: student.academicRecordId,
+        })),
+      });
+    } catch (error) {
+      console.error(
+        'Unable to prepare material notification:',
+        error
+      );
+
+      // Notification preparation must never undo
+      // a successful material save.
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       let url = formData.link?.trim() || '';
+
+      const savedMaterial = {
+        title: formData.title.trim(),
+        classNumber: Number(formData.class),
+        isUpdate: Boolean(editingId),
+      };
 
       if (formData.file) {
         url = await uploadMaterialFile(formData.file);
@@ -126,6 +177,8 @@ const StudyMaterialForm = () => {
 
         alert('Uploaded!');
       }
+
+      await prepareMaterialNotification(savedMaterial);
 
       setFormData({
         title: '',
@@ -237,7 +290,8 @@ const StudyMaterialForm = () => {
   });
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <>
+      <div className="max-w-4xl mx-auto space-y-6">
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
           <RiBookOpenLine className="text-blue-500" />
@@ -486,7 +540,36 @@ const StudyMaterialForm = () => {
           ))}
         </div>
       </div>
-    </div>
+      </div>
+
+      <PostActionNotificationDialog
+        open={Boolean(notificationPrompt)}
+        onClose={() => setNotificationPrompt(null)}
+        type="material"
+        priority="normal"
+        title={
+          notificationPrompt
+            ? notificationPrompt.isUpdate
+              ? `${notificationPrompt.title} Updated`
+              : 'New Study Material'
+            : ''
+        }
+        body={
+          notificationPrompt
+            ? notificationPrompt.isUpdate
+              ? `${notificationPrompt.title} has been updated in Study Materials.`
+              : `${notificationPrompt.title} is now available in Study Materials.`
+            : ''
+        }
+        actionUrl="/student-dashboard?tab=study"
+        recipients={notificationPrompt?.recipients ?? []}
+        contextLabel={
+          notificationPrompt
+            ? `Class ${notificationPrompt.classNumber} • ${CURRENT_ACADEMIC_YEAR}`
+            : ''
+        }
+      />
+    </>
   );
 };
 

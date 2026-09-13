@@ -116,6 +116,50 @@ export default function StudentDashboard() {
     studentId,
   ]);
   useEffect(() => {
+    if (
+      authLoading ||
+      !appUser ||
+      appUser.role !== 'student' ||
+      appUser.status !== 'active' ||
+      !studentId
+    ) {
+      return undefined;
+    }
+
+    const channel = supabase
+      .channel(`student-notifications-${studentId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notification_recipients',
+          filter: `student_id=eq.${studentId}`,
+        },
+        () => {
+          fetchNotifications();
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.error(
+            'Student notification realtime subscription failed.'
+          );
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [
+    authLoading,
+    appUser?.auth_user_id,
+    appUser?.role,
+    appUser?.status,
+    studentId,
+  ]);
+
+  useEffect(() => {
     const params = new URLSearchParams(location.search);
 
     const tab = params.get('tab');

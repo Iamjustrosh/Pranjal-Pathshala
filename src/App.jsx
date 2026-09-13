@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import {
   Routes,
   Route,
@@ -18,7 +18,17 @@ import NewAdmissionForm from './pages/NewAdmissionForm';
 import AdmissionPDF from './pages/AdmissionPDF';
 import StudyMaterial from './pages/StudyMaterial';
 import Contact from './pages/Contact';
-import AdminPanel from './pages/AdminPanel';
+const AdminPanel = lazy(() => import('./pages/AdminPanel'));
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdmissionsPage from './pages/admin/AdmissionsPage';
+import ClassManagerPage from './pages/admin/ClassManagerPage';
+import ResultsPage from './pages/admin/ResultsPage';
+import MaterialsPage from './pages/admin/MaterialsPage';
+import QuizzesPage from './pages/admin/QuizzesPage';
+import AnalyticsPage from './pages/admin/AnalyticsPage';
+import AttendancePage from './pages/admin/AttendancePage';
+import NotificationsPage from './pages/admin/NotificationsPage';
+import SettingsPage from './pages/admin/SettingsPage';
 import Login from './pages/Login';
 import StudentDashboard from './pages/StudentDashboard';
 import Quiz from './pages/Quiz';
@@ -34,6 +44,7 @@ function AppContent() {
   // Pages that should use their own full-screen application layout
   // instead of the main public website Navbar/Footer.
   const standaloneRoutes = [
+    '/admin',
     '/student-dashboard',
   ];
 
@@ -100,10 +111,21 @@ function AppContent() {
                   'super_admin',
                 ]}
               >
-                <AdminPanel />
+                <Suspense fallback={<div className="p-8 text-slate-500" role="status">Loading admin console...</div>}><AdminPanel /></Suspense>
               </ProtectedRoute>
             }
-          />
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="admissions" element={<AdmissionsPage />} />
+            <Route path="students" element={<ClassManagerPage />} />
+            <Route path="results" element={<ResultsPage />} />
+            <Route path="materials" element={<MaterialsPage />} />
+            <Route path="quizzes" element={<QuizzesPage />} />
+            <Route path="analytics" element={<AnalyticsPage />} />
+            <Route path="attendance" element={<AttendancePage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+          </Route>
 
           {/* Protected Student App */}
           <Route

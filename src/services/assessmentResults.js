@@ -28,8 +28,8 @@ export async function listResultStudents(client, { year, classNumber }) {
   requireScope(year, classNumber);
   const records = await allRows(() => {
     let query = client.from('student_academic_records')
-    .select('id, student_id, uid, class, academic_year, status, students(student_name)')
-    .eq('academic_year', Number(year)).order('class').order('id');
+      .select('id, student_id, uid, class, academic_year, status, students(student_name)')
+      .eq('academic_year', Number(year)).order('class').order('id');
     if (classNumber) query = query.eq('class', Number(classNumber));
     return query;
   });
@@ -45,7 +45,7 @@ function requireScope(year, classNumber, requireClass = false) {
   }
   const hasClass = classNumber != null && classNumber !== '';
   if ((requireClass && !hasClass) || (hasClass &&
-      (!Number.isInteger(Number(classNumber)) || Number(classNumber) < 1 || Number(classNumber) > 12))) {
+    (!Number.isInteger(Number(classNumber)) || Number(classNumber) < 1 || Number(classNumber) > 12))) {
     throw new Error('Select a valid assessment class before loading results.');
   }
 }
@@ -95,8 +95,10 @@ export async function loadAssessmentResults(client, assessment) {
   }
   return records.map(record => {
     const { academic_record_id, student_id, student_name, uid, class: classNumber, academic_year, status } = record;
-    return { academic_record_id, student_id, student_name, uid, class: classNumber, academic_year, status,
-      result: byRecord.get(String(academic_record_id)) ?? null };
+    return {
+      academic_record_id, student_id, student_name, uid, class: classNumber, academic_year, status,
+      result: byRecord.get(String(academic_record_id)) ?? null
+    };
   });
 }
 
@@ -117,25 +119,191 @@ export async function loadStudentAssessmentResults(client, record) {
   }
   return assessments.map(assessment => ({ assessment, result: byAssessment.get(String(assessment.id)) ?? null }));
 }
+export async function loadAdminAnalyticsDataset(
+  client,
+  { year, classNumber }
+) {
+  requireScope(year, classNumber);
 
+  const academicYear = Number(year);
+  const academicClass =
+    classNumber != null && classNumber !== ''
+      ? Number(classNumber)
+      : null;
+
+  const [students, assessments] = await Promise.all([
+    listResultStudents(client, {
+      year: academicYear,
+      classNumber: academicClass ?? '',
+    }),
+    listAssessments(client, {
+      year: academicYear,
+      classNumber: academicClass ?? '',
+    }),
+  ]);
+
+  // Performance analytics should match what students can actually see.
+  // Draft/unpublished assessments are excluded.
+  const publishedAssessments = assessments.filter(
+    assessment => assessment.status === 'published'
+  );
+
+  if (!publishedAssessments.length) {
+    return {
+      scope: {
+        academicYear,
+        class: academicClass,
+      },
+      students,
+      assessments: [],
+      results: [],
+    };
+  }
+
+  const assessmentIds = publishedAssessments.map(
+    assessment => assessment.id
+  );
+
+  const rawResults = await allRows(() =>
+    client
+      .from('assessment_results')
+      .select(`
+        id,
+        assessment_id,
+        student_academic_record_id,
+        marks_obtained,
+        max_marks,
+        status
+      `)
+      .in('assessment_id', assessmentIds)
+      .eq('status', 'graded')
+      .order('id')
+  );
+
+  const assessmentById = new Map(
+    publishedAssessments.map(assessment => [
+      String(assessment.id),
+      assessment,
+    ])
+  );
+
+  const studentByRecordId = new Map(
+    students.map(student => [
+      String(student.academic_record_id),
+      student,
+    ])
+  );
+
+  const seenResultPairs = new Set();
+
+  const results = rawResults.map(result => {
+    const assessment = assessmentById.get(
+      String(result.assessment_id)
+    );
+
+    if (!assessment) {
+      throw new Error(
+        `Result ${result.id} does not resolve to a published assessment in the selected scope.`
+      );
+    }
+
+    const student = studentByRecordId.get(
+      String(result.student_academic_record_id)
+    );
+
+    if (!student) {
+      throw new Error(
+        `Result ${result.id} does not resolve to an academic record in the selected year/class scope.`
+      );
+    }
+
+    const pairKey =
+      `${result.assessment_id}:${result.student_academic_record_id}`;
+
+    if (seenResultPairs.has(pairKey)) {
+      throw new Error(
+        'Duplicate graded results exist for the same assessment and academic record.'
+      );
+    }
+
+    seenResultPairs.add(pairKey);
+
+    const marks = Number(result.marks_obtained);
+    const maxMarks = Number(
+      result.max_marks ?? assessment.max_marks
+    );
+
+    if (
+      !Number.isFinite(marks) ||
+      !Number.isFinite(maxMarks) ||
+      maxMarks <= 0 ||
+      marks < 0 ||
+      marks > maxMarks
+    ) {
+      throw new Error(
+        `Result ${result.id} contains an invalid score and cannot be used for analytics.`
+      );
+    }
+
+    return {
+      resultId: result.id,
+
+      academicRecordId: student.academic_record_id,
+      studentId: student.student_id,
+      studentName: student.student_name,
+      uid: student.uid,
+
+      academicYear: student.academic_year,
+      class: student.class,
+      academicStatus: student.status,
+
+      assessmentId: assessment.id,
+      title: assessment.title,
+
+      // Never infer subjects.
+      // Combined tests legitimately remain null.
+      subject: assessment.subject?.trim() || null,
+
+      assessmentType: assessment.assessment_type,
+      assessmentDate: assessment.assessment_date,
+
+      marks,
+      maxMarks,
+
+      percentage: Number(
+        ((marks / maxMarks) * 100).toFixed(2)
+      ),
+    };
+  });
+
+  return {
+    scope: {
+      academicYear,
+      class: academicClass,
+    },
+    students,
+    assessments: publishedAssessments,
+    results,
+  };
+}
 export async function saveAssessmentResult(client, assessment, row, fields) {
   requireScope(assessment?.academic_year, assessment?.class, true);
   if (!row.academic_record_id || !assessment.id ||
-      Number(row.academic_year) !== Number(assessment.academic_year) ||
-      Number(row.class) !== Number(assessment.class)) {
+    Number(row.academic_year) !== Number(assessment.academic_year) ||
+    Number(row.class) !== Number(assessment.class)) {
     throw new Error('The academic record must belong to the assessment’s year and class.');
   }
   const marks = Number(fields.marks);
   const max = Number(fields.maxMarks);
   if (String(fields.marks ?? '').trim() === '' || String(fields.maxMarks ?? '').trim() === '' ||
-      !Number.isFinite(marks) || !Number.isFinite(max) || max <= 0 || marks < 0 || marks > max) {
+    !Number.isFinite(marks) || !Number.isFinite(max) || max <= 0 || marks < 0 || marks > max) {
     throw new Error('Enter a score from zero to the maximum, and a maximum greater than zero.');
   }
   const changes = { marks_obtained: marks, max_marks: max, status: 'graded' };
   let query;
   if (row.result) {
     if (String(row.result.student_academic_record_id) !== String(row.academic_record_id) ||
-        String(row.result.assessment_id) !== String(assessment.id)) {
+      String(row.result.assessment_id) !== String(assessment.id)) {
       throw new Error('The result does not belong to this academic record and assessment.');
     }
     query = client.from('assessment_results').update(changes)
@@ -151,7 +319,8 @@ export async function saveAssessmentResult(client, assessment, row, fields) {
       .eq('assessment_id', assessment.id).eq('student_academic_record_id', row.academic_record_id).limit(1);
     if (error) throw error;
     if (data.length) throw new Error('A result already exists. Refresh before editing it.');
-    query = client.from('assessment_results').insert({ ...changes,
+    query = client.from('assessment_results').insert({
+      ...changes,
       assessment_id: assessment.id, student_academic_record_id: row.academic_record_id,
     });
   }

@@ -3,6 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
+import {
+  calculatePerformanceSummary,
+  calculateSubjectPerformance,
+  calculateAssessmentTypePerformance,
+} from '../utils/performanceAnalytics';
+
+
 import StudentHeader from '../components/student/StudentHeader';
 import StudentBottomNav from '../components/student/StudentBottomNav';
 import PerformancePage from '../components/student/PerformancePage';
@@ -25,6 +32,7 @@ export default function StudentDashboard() {
 
   const [academicRecords, setAcademicRecords] = useState([]);
   const [academicRecord, setAcademicRecord] = useState(null);
+  const [academicYearPerformance, setAcademicYearPerformance] = useState([]);
 
   const [profileError, setProfileError] = useState('');
   const [switchingAcademicYear, setSwitchingAcademicYear] = useState(false);
@@ -169,6 +177,8 @@ export default function StudentDashboard() {
       setStudentProfile(studentData);
       setAcademicRecords(records);
 
+      await fetchAcademicYearPerformance(records);
+
       await applyAcademicRecord(
         studentData,
         activeRecord
@@ -209,6 +219,101 @@ export default function StudentDashboard() {
     interested_subjects:
       selectedRecord.interested_subjects,
   });
+
+  const fetchAcademicYearPerformance = async (academicRecords) => {
+    if (!academicRecords?.length) {
+      setAcademicYearPerformance([]);
+      return;
+    }
+
+    try {
+      const recordIds = academicRecords.map((record) => record.id);
+
+      const { data, error } = await supabase
+        .from('assessment_results')
+        .select(`
+        id,
+        student_academic_record_id,
+        marks_obtained,
+        max_marks,
+        status,
+        assessment:assessments (
+          id,
+          assessment_type,
+          max_marks,
+          status
+        )
+      `)
+        .in('student_academic_record_id', recordIds)
+        .eq('status', 'graded');
+
+      if (error) {
+        throw error;
+      }
+
+      const publishedResults = (data || []).filter(
+        (row) =>
+          row.assessment &&
+          row.assessment.status === 'published'
+      );
+
+      const summaries = academicRecords.map((record) => {
+        const recordResults = publishedResults
+          .filter(
+            (row) =>
+              Number(row.student_academic_record_id) ===
+              Number(record.id)
+          )
+          .map((row) => ({
+            marks: Number(row.marks_obtained),
+            max_marks: Number(
+              row.max_marks ??
+              row.assessment?.max_marks ??
+              0
+            ),
+          }))
+          .filter(
+            (row) =>
+              Number.isFinite(row.marks) &&
+              Number.isFinite(row.max_marks) &&
+              row.max_marks > 0
+          );
+
+        const summary =
+          calculatePerformanceSummary(recordResults);
+
+        return {
+          academicRecordId: record.id,
+          academicYear: record.academic_year,
+          class: record.class,
+          uid: record.uid,
+          status: record.status,
+
+          assessmentCount: summary.assessmentCount,
+          totalMarksObtained:
+            summary.totalMarksObtained,
+          totalMaxMarks: summary.totalMaxMarks,
+          overallPercentage:
+            summary.overallPercentage,
+        };
+      });
+
+      summaries.sort(
+        (a, b) =>
+          Number(a.academicYear) -
+          Number(b.academicYear)
+      );
+
+      setAcademicYearPerformance(summaries);
+    } catch (error) {
+      console.error(
+        'Failed to fetch academic year performance:',
+        error
+      );
+
+      setAcademicYearPerformance([]);
+    }
+  };
 
   const fetchAssessmentResults = async (
     academicRecordId
@@ -286,8 +391,7 @@ export default function StudentDashboard() {
         return {
           id: row.id,
           subject:
-            row.assessment.subject?.trim() ||
-            row.assessment.title,
+            row.assessment.subject?.trim() || null,
           title: row.assessment.title,
           exam_type:
             row.assessment.assessment_type,
@@ -510,18 +614,12 @@ export default function StudentDashboard() {
 
   const testMarks = useMemo(
     () =>
-      marks.filter((mark) => {
-        const type = (
-          mark.exam_type || ''
-        )
-          .toLowerCase()
-          .trim();
-
-        return (
-          type === 'test' ||
-          type === 'exam'
-        );
-      }),
+      marks.filter(
+        (mark) =>
+          (mark.exam_type || '')
+            .toLowerCase()
+            .trim() === 'test'
+      ),
     [marks]
   );
 
@@ -537,14 +635,37 @@ export default function StudentDashboard() {
       ),
     [marks]
   );
+  const performanceSummary = useMemo(
+    () => calculatePerformanceSummary(marks),
+    [marks]
+  );
+
+  const subjectPerformance = useMemo(
+    () => calculateSubjectPerformance(marks),
+    [marks]
+  );
+
+  const assessmentTypePerformance = useMemo(
+    () => calculateAssessmentTypePerformance(marks),
+    [marks]
+  );
+
 
   const toGraphData = (rows) =>
     rows.map((mark) => ({
       date: mark.exam_date,
+      label: mark.title,
+      title: mark.title,
       subject: mark.subject,
       marks: mark.marks,
       max: mark.max_marks,
       percentage: mark.percentage,
+      displayDate: mark.exam_date
+        ? new Date(mark.exam_date).toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'short',
+        })
+        : '',
     }));
 
   const renderPage = () => {
@@ -606,6 +727,10 @@ export default function StudentDashboard() {
             switchingAcademicYear={
               switchingAcademicYear
             }
+            subjectPerformance={subjectPerformance}
+            performanceSummary={performanceSummary}
+            assessmentTypePerformance={assessmentTypePerformance}
+            academicYearPerformance={academicYearPerformance}
           />
         );
     }

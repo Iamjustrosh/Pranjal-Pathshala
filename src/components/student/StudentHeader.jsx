@@ -33,6 +33,13 @@ export default function StudentHeader({
   unreadNotificationCount = 0,
   notificationLoading = false,
 
+  pushPermission,
+  pushEnabled,
+  pushLoading,
+  pushError,
+  onEnablePush,
+  onDisablePush,
+
 }) {
   const [menuOpen, setMenuOpen] =
     useState(false);
@@ -239,6 +246,69 @@ export default function StudentHeader({
                       Profile
                     </button>
 
+
+                    {/* PUSH NOTIFICATION */}
+
+                    <div className="my-1 border-t border-slate-100" />
+
+                    <div className="px-3 py-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-slate-700">
+                            Push Notifications
+                          </p>
+
+                          <p className="mt-0.5 text-[10px] leading-relaxed text-slate-400">
+                            {pushPermission === 'denied'
+                              ? 'Blocked by your browser'
+                              : pushEnabled
+                                ? 'Enabled on this device'
+                                : 'Receive updates on this device'}
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          disabled={
+                            pushLoading ||
+                            pushPermission === 'denied'
+                          }
+                          onClick={
+                            pushEnabled
+                              ? onDisablePush
+                              : onEnablePush
+                          }
+                          className={`
+        shrink-0 rounded-lg px-2.5 py-1.5
+        text-[10px] font-semibold transition
+        disabled:cursor-not-allowed
+        disabled:opacity-50
+
+        ${pushEnabled
+                              ? 'bg-red-50 text-red-500 hover:bg-red-100'
+                              : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+                            }
+      `}
+                        >
+                          {pushLoading
+                            ? 'Wait...'
+                            : pushEnabled
+                              ? 'Disable'
+                              : pushPermission === 'denied'
+                                ? 'Blocked'
+                                : 'Enable'}
+                        </button>
+                      </div>
+
+                      {pushError && (
+                        <p className="mt-2 text-[10px] leading-relaxed text-red-500">
+                          {pushError}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="my-1 border-t border-slate-100" />
+                    
                     <button
                       type="button"
                       onClick={onLogout}

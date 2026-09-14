@@ -249,6 +249,28 @@ export async function listNotificationStudents(
   }));
 }
 
+async function sendPushForNotification(client, notificationId) {
+  const id = Number(notificationId);
+
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    throw new Error('A valid notification ID is required for push delivery.');
+  }
+
+  const { data, error } = await client.functions.invoke(
+    'send-push-notification',
+    {
+      body: {
+        notificationId: id,
+      },
+    }
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
 
 export async function createNotification(
   client,
@@ -379,6 +401,24 @@ export async function createNotification(
       throw recipientsError;
     }
   }
+  if (notification.status === 'published') {
+    try {
+      const pushResult = await sendPushForNotification(
+        client,
+        notification.id
+      );
+
+      console.log(
+        'Push delivery result:',
+        pushResult
+      );
+    } catch (pushError) {
+      console.error(
+        'Push delivery failed:',
+        pushError
+      );
+    }
+  }
 
   return notification;
 }
@@ -434,6 +474,23 @@ export async function publishNotification(
     .single();
 
   if (error) throw error;
+
+  try {
+    const pushResult = await sendPushForNotification(
+      client,
+      data.id
+    );
+
+    console.log(
+      'Push delivery result:',
+      pushResult
+    );
+  } catch (pushError) {
+    console.error(
+      'Push delivery failed:',
+      pushError
+    );
+  }
 
   return data;
 }

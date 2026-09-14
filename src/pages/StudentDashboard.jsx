@@ -24,6 +24,15 @@ import {
   loadStudentNotifications,
 } from '../services/notifications';
 
+import {
+  getNotificationPermission,
+  getExistingPushSubscription,
+  subscribeToPush,
+  savePushSubscription,
+  disablePushSubscription,
+  unsubscribeFromPush,
+} from '../services/pushNotifications'
+
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
@@ -55,6 +64,12 @@ export default function StudentDashboard() {
   const [notifications, setNotifications] = useState([]);
   const [notificationLoading, setNotificationLoading] =
     useState(false);
+
+  const [pushPermission, setPushPermission] = useState('default')
+  const [pushEnabled, setPushEnabled] = useState(false)
+  const [pushLoading, setPushLoading] = useState(false)
+  const [pushError, setPushError] = useState('')
+
 
   const fetchNotifications = async () => {
     try {
@@ -159,6 +174,90 @@ export default function StudentDashboard() {
     studentId,
   ]);
 
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadPushStatus() {
+      try {
+        const permission = await getNotificationPermission()
+        const subscription = await getExistingPushSubscription()
+
+        if (cancelled) return
+
+        setPushPermission(permission)
+        setPushEnabled(Boolean(subscription))
+      } catch (error) {
+        console.error('Failed to load push notification status:', error)
+      }
+    }
+
+    loadPushStatus()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  async function handleEnablePushNotifications() {
+    if (!studentProfile?.id) return
+
+    try {
+      setPushLoading(true)
+      setPushError('')
+
+      const subscriptionData = await subscribeToPush()
+
+      await savePushSubscription(
+        supabase,
+        studentProfile.id,
+        subscriptionData
+      )
+
+      setPushPermission('granted')
+      setPushEnabled(true)
+    } catch (error) {
+      console.error('Failed to enable push notifications:', error)
+
+      setPushError(
+        error?.message || 'Unable to enable push notifications.'
+      )
+
+      const permission = await getNotificationPermission()
+      setPushPermission(permission)
+    } finally {
+      setPushLoading(false)
+    }
+  }
+
+  async function handleDisablePushNotifications() {
+    try {
+      setPushLoading(true)
+      setPushError('')
+
+      const existingSubscription =
+        await getExistingPushSubscription()
+
+      if (existingSubscription) {
+        await disablePushSubscription(
+          supabase,
+          existingSubscription.endpoint
+        )
+
+        await unsubscribeFromPush()
+      }
+
+      setPushEnabled(false)
+    } catch (error) {
+      console.error('Failed to disable push notifications:', error)
+
+      setPushError(
+        error?.message || 'Unable to disable push notifications.'
+      )
+    } finally {
+      setPushLoading(false)
+    }
+  }
   useEffect(() => {
     const params = new URLSearchParams(location.search);
 
@@ -909,6 +1008,14 @@ export default function StudentDashboard() {
             notificationLoading={
               notificationLoading
             }
+
+            pushPermission={pushPermission}
+            pushEnabled={pushEnabled}
+            pushLoading={pushLoading}
+            pushError={pushError}
+            onEnablePush={handleEnablePushNotifications}
+            onDisablePush={handleDisablePushNotifications}
+
           />
           {switchingAcademicYear && (
             <div

@@ -5,3 +5,7 @@ verify_jwt = true
 [functions.update-student-password]
 entrypoint = "./functions/update-student-password/index.js"
 verify_jwt = true
+
+[functions.send-push-notification]
+entrypoint = './functions/send-push-notification/index.js'
+

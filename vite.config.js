@@ -19,6 +19,10 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
 
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
+
       includeAssets: [
         'favicon.svg',
         'favicon.ico',
@@ -26,7 +30,7 @@ export default defineConfig({
         'apple-touch-icon.png',
       ],
 
-      workbox: {
+      injectManifest: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
 

@@ -18,7 +18,7 @@ export default function AdminSidebar({
   loggingOut,
 }) {
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex h-full flex-col bg-white ">
       <div
         className={cn(
           "flex h-20 shrink-0 items-center gap-3 border-b border-slate-200 px-5",

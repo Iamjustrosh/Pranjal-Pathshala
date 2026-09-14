@@ -186,10 +186,17 @@ export async function loadAdminNotifications(client) {
 
 export async function listNotificationStudents(
   client,
-  { year, classNumber } = {}
+  {
+    year,
+    classNumber = null,
+  } = {}
 ) {
+  if (!year) {
+    throw new Error("Academic year is required.");
+  }
+
   let query = client
-    .from('student_academic_records')
+    .from("student_academic_records")
     .select(`
       id,
       student_id,
@@ -197,45 +204,48 @@ export async function listNotificationStudents(
       academic_year,
       class,
       status,
-      students (
+      student:students (
         id,
         student_name
       )
     `)
-    .order('uid', { ascending: true });
+    .eq("academic_year", Number(year))
+    .eq("status", "active")
+    .order("class", {
+      ascending: true,
+    })
+    .order("uid", {
+      ascending: true,
+    });
 
-  if (year != null) {
-    const academicYear = Number(year);
-
-    if (!Number.isInteger(academicYear)) {
-      throw new Error('A valid academic year is required.');
-    }
-
-    query = query.eq('academic_year', academicYear);
-  }
-
-  if (classNumber != null) {
-    const classValue = Number(classNumber);
-
-    if (!Number.isInteger(classValue)) {
-      throw new Error('A valid class is required.');
-    }
-
-    query = query.eq('class', classValue);
+  // Class mode:
+  // apply class filter only when one is explicitly supplied.
+  if (
+    classNumber !== null &&
+    classNumber !== undefined &&
+    classNumber !== ""
+  ) {
+    query = query.eq(
+      "class",
+      Number(classNumber)
+    );
   }
 
   const { data, error } = await query;
 
-  if (error) throw error;
+  if (error) {
+    throw error;
+  }
 
-  return (data ?? []).map((row) => ({
-    academicRecordId: row.id,
-    studentId: row.student_id,
-    studentName: row.students?.student_name ?? 'Unknown Student',
-    uid: row.uid,
-    academicYear: row.academic_year,
-    class: row.class,
-    academicStatus: row.status,
+  return (data ?? []).map((record) => ({
+    studentId: record.student_id,
+    academicRecordId: record.id,
+    studentName:
+      record.student?.student_name ??
+      "Unknown Student",
+    uid: record.uid,
+    academicYear: record.academic_year,
+    class: record.class,
   }));
 }
 
@@ -426,4 +436,152 @@ export async function publishNotification(
   if (error) throw error;
 
   return data;
+}
+
+export async function updateDraftNotification(
+  client,
+  notificationId,
+  {
+    title,
+    body,
+    type = "general",
+    priority = "normal",
+    actionUrl = null,
+    expiresAt = null,
+  }
+) {
+  if (!notificationId) {
+    throw new Error("Notification ID is required.");
+  }
+
+  if (!title?.trim()) {
+    throw new Error("Notification title is required.");
+  }
+
+  if (!body?.trim()) {
+    throw new Error("Notification message is required.");
+  }
+
+  // First confirm that this notification is still a draft.
+  const { data: existing, error: fetchError } = await client
+    .from("notifications")
+    .select("id, status")
+    .eq("id", notificationId)
+    .single();
+
+  if (fetchError) {
+    throw fetchError;
+  }
+
+  if (!existing) {
+    throw new Error("Notification not found.");
+  }
+
+  if (existing.status !== "draft") {
+    throw new Error("Only draft notifications can be edited.");
+  }
+
+  const { data, error } = await client
+    .from("notifications")
+    .update({
+      title: title.trim(),
+      body: body.trim(),
+      notification_type: type,
+      priority,
+      action_url: actionUrl?.trim() || null,
+      expires_at: expiresAt || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", notificationId)
+    .eq("status", "draft")
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function deleteDraftNotification(
+  client,
+  notificationId
+) {
+  if (!notificationId) {
+    throw new Error("Notification ID is required.");
+  }
+
+  const { error } = await client.rpc(
+    "delete_draft_notification",
+    {
+      p_notification_id: notificationId,
+    }
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return true;
+}
+
+export async function deleteArchivedNotification(
+  client,
+  notificationId
+) {
+  if (!notificationId) {
+    throw new Error(
+      "Notification ID is required."
+    );
+  }
+
+  const { error } = await client.rpc(
+    "delete_archived_notification",
+    {
+      p_notification_id: notificationId,
+    }
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return true;
+}
+
+
+export async function deleteArchivedNotificationsBefore(
+  client,
+  before
+) {
+  if (!before) {
+    throw new Error(
+      "Cleanup date is required."
+    );
+  }
+
+  const date =
+    before instanceof Date
+      ? before
+      : new Date(before);
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(
+      "Invalid cleanup date."
+    );
+  }
+
+  const { data, error } = await client.rpc(
+    "delete_archived_notifications_before",
+    {
+      p_before: date.toISOString(),
+    }
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return Number(data ?? 0);
 }

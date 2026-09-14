@@ -1,15 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Archive,
   Bell,
   CheckCircle2,
   Clock3,
+  Eye,
   Loader2,
   Mail,
+  Pencil,
   Plus,
   RefreshCcw,
   Send,
+  Trash2,
   Users,
+  X,
 } from "lucide-react";
 
 import PageHeader from "@/components/admin/PageHeader";
@@ -20,9 +25,13 @@ import { supabase } from "@/supabaseClient";
 import {
   archiveNotification,
   createNotification,
+  deleteArchivedNotification,
+  deleteArchivedNotificationsBefore,
+  deleteDraftNotification,
   listNotificationStudents,
   loadAdminNotifications,
   publishNotification,
+  updateDraftNotification,
 } from "@/services/notifications";
 
 const TYPE_OPTIONS = [
@@ -37,6 +46,15 @@ const TYPE_OPTIONS = [
 ];
 
 const PRIORITY_OPTIONS = ["low", "normal", "high", "urgent"];
+
+const ACTION_OPTIONS = [
+  { label: "No action", value: "" },
+  { label: "Dashboard", value: "/student-dashboard" },
+  { label: "Performance / Results", value: "/student-dashboard?tab=performance" },
+  { label: "Attendance", value: "/student-dashboard?tab=attendance" },
+  { label: "Study Materials", value: "/student-dashboard?tab=study" },
+  { label: "Quizzes", value: "/student-dashboard?tab=quiz" },
+];
 
 const STATUS_BADGES = {
   published:
@@ -76,8 +94,90 @@ function NotificationBadge({ children, className = "" }) {
   );
 }
 
+
+function FieldHelp({ text }) {
+  const buttonRef = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState({
+    top: 0,
+    left: 0,
+  });
+
+  const showTooltip = () => {
+    const rect =
+      buttonRef.current?.getBoundingClientRect();
+
+    if (rect) {
+      setPosition({
+        top: rect.bottom + 8,
+        left: Math.min(
+          Math.max(rect.left + rect.width / 2, 140),
+          window.innerWidth - 140
+        ),
+      });
+    }
+
+    setOpen(true);
+  };
+
+  const hideTooltip = () => setOpen(false);
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-label={text}
+        onMouseEnter={showTooltip}
+        onMouseLeave={hideTooltip}
+        onFocus={showTooltip}
+        onBlur={hideTooltip}
+        className="ml-1.5 inline-flex h-[17px] w-[17px] translate-y-[1px] items-center justify-center rounded-full border border-slate-300 bg-white text-[10px] font-semibold leading-none text-slate-500 transition-colors hover:border-slate-400 hover:text-slate-700 focus:outline-none focus-visible:border-indigo-500"
+      >
+        ?
+      </button>
+
+      {open &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            role="tooltip"
+            style={{
+              position: "fixed",
+              top: position.top,
+              left: position.left,
+              transform: "translateX(-50%)",
+            }}
+            className="pointer-events-none z-[9999] w-[min(18rem,calc(100vw-2rem))] rounded-lg bg-slate-950 px-3 py-2 text-left text-xs font-normal leading-5 text-white shadow-xl"
+          >
+            {text}
+          </div>,
+          document.body
+        )}
+    </>
+  );
+}
+
 export default function NotificationsPage() {
   const currentYear = new Date().getFullYear();
+
+  const yearOptions = useMemo(
+    () =>
+      Array.from(
+        { length: 7 },
+        (_, index) => currentYear + 1 - index
+      ),
+    [currentYear]
+  );
+
+  const classOptions = useMemo(
+    () =>
+      Array.from(
+        { length: 12 },
+        (_, index) => index + 1
+      ),
+    []
+  );
 
   const [notifications, setNotifications] = useState([]);
   const [students, setStudents] = useState([]);
@@ -90,9 +190,25 @@ export default function NotificationsPage() {
   const [error, setError] = useState("");
 
   const [showComposer, setShowComposer] = useState(false);
+  const [viewingNotification, setViewingNotification] = useState(null);
+  const [editingNotification, setEditingNotification] = useState(null);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    body: "",
+    type: "general",
+    priority: "normal",
+    actionUrl: "",
+    expiresAt: "",
+  });
 
   const [year, setYear] = useState(currentYear);
   const [classNumber, setClassNumber] = useState(6);
+  const [audienceMode, setAudienceMode] = useState("class");
+
+  const [showCleanup, setShowCleanup] = useState(false);
+  const [cleanupPeriod, setCleanupPeriod] = useState("90");
+  const [cleanupDate, setCleanupDate] = useState("");
+  const [cleanupRunning, setCleanupRunning] = useState(false);
 
   const [form, setForm] = useState({
     title: "",
@@ -128,7 +244,10 @@ export default function NotificationsPage() {
 
       const data = await listNotificationStudents(supabase, {
         year,
-        classNumber,
+        classNumber:
+          audienceMode === "class"
+            ? classNumber
+            : null,
       });
 
       setStudents(data);
@@ -139,7 +258,7 @@ export default function NotificationsPage() {
     } finally {
       setStudentsLoading(false);
     }
-  }, [year, classNumber]);
+  }, [year, classNumber, audienceMode]);
 
   useEffect(() => {
     loadNotifications();
@@ -287,6 +406,156 @@ export default function NotificationsPage() {
     }
   };
 
+  const openViewDialog = (notification) => setViewingNotification(notification);
+
+  const openEditDialog = (notification) => {
+    setEditingNotification(notification);
+    setEditForm({
+      title: notification.title ?? "",
+      body: notification.body ?? "",
+      type: notification.type ?? "general",
+      priority: notification.priority ?? "normal",
+      actionUrl: notification.actionUrl ?? "",
+      expiresAt: notification.expiresAt
+        ? new Date(notification.expiresAt).toISOString().slice(0, 16)
+        : "",
+    });
+  };
+
+  const closeEditDialog = () => {
+    setEditingNotification(null);
+    setEditForm({ title: "", body: "", type: "general", priority: "normal", actionUrl: "", expiresAt: "" });
+  };
+
+  const handleUpdateDraft = async (event) => {
+    event.preventDefault();
+    if (!editingNotification) return;
+    try {
+      setActionId(editingNotification.id);
+      setError("");
+      await updateDraftNotification(supabase, editingNotification.id, {
+        title: editForm.title,
+        body: editForm.body,
+        type: editForm.type,
+        priority: editForm.priority,
+        actionUrl: editForm.actionUrl || null,
+        expiresAt: editForm.expiresAt ? new Date(editForm.expiresAt).toISOString() : null,
+      });
+      closeEditDialog();
+      await loadNotifications();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Failed to update draft notification.");
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const handleDeleteDraft = async (notification) => {
+    if (!window.confirm(`Delete draft "${notification.title}" permanently? This cannot be undone.`)) return;
+    try {
+      setActionId(notification.id);
+      setError("");
+      await deleteDraftNotification(supabase, notification.id);
+      if (viewingNotification?.id === notification.id) setViewingNotification(null);
+      if (editingNotification?.id === notification.id) closeEditDialog();
+      await loadNotifications();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Failed to delete draft notification.");
+    } finally {
+      setActionId(null);
+    }
+  };
+
+
+  const handleDeleteArchived = async (notification) => {
+    const confirmed = window.confirm(
+      `Permanently delete archived notification "${notification.title}"? This also removes its recipient history and cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setActionId(notification.id);
+      setError("");
+
+      await deleteArchivedNotification(
+        supabase,
+        notification.id
+      );
+
+      if (viewingNotification?.id === notification.id) {
+        setViewingNotification(null);
+      }
+
+      await loadNotifications();
+    } catch (err) {
+      console.error(err);
+      setError(
+        err.message ||
+          "Failed to permanently delete archived notification."
+      );
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const handleCleanupArchived = async () => {
+    let before;
+
+    if (cleanupPeriod === "custom") {
+      if (!cleanupDate) {
+        setError("Select a cleanup date.");
+        return;
+      }
+
+      before = new Date(`${cleanupDate}T23:59:59`);
+    } else {
+      const days = Number(cleanupPeriod);
+      before = new Date();
+      before.setDate(before.getDate() - days);
+    }
+
+    const label =
+      cleanupPeriod === "custom"
+        ? `before ${cleanupDate}`
+        : `older than ${cleanupPeriod} days`;
+
+    const confirmed = window.confirm(
+      `Permanently delete all archived notifications ${label}? This also removes their recipient history and cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setCleanupRunning(true);
+      setError("");
+
+      const deletedCount =
+        await deleteArchivedNotificationsBefore(
+          supabase,
+          before
+        );
+
+      window.alert(
+        `${deletedCount} archived notification${
+          deletedCount === 1 ? "" : "s"
+        } permanently deleted.`
+      );
+
+      await loadNotifications();
+    } catch (err) {
+      console.error(err);
+      setError(
+        err.message ||
+          "Failed to clean up archived notifications."
+      );
+    } finally {
+      setCleanupRunning(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -305,6 +574,16 @@ export default function NotificationsPage() {
               }`}
             />
             Refresh
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={() => setShowCleanup((value) => !value)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            {showCleanup
+              ? "Close Cleanup"
+              : "Cleanup Archived"}
           </Button>
 
           <Button
@@ -391,9 +670,79 @@ export default function NotificationsPage() {
         </Card>
       </div>
 
-      {showComposer && (
+      {showCleanup && (
         <Card>
           <CardContent className="p-6">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">
+                  Cleanup Archived Notifications
+                </h2>
+                <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+                  Permanently remove archived notifications and their recipient history.
+                  Published notifications must be archived before they can be deleted.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <label className="space-y-2">
+                  <span className="inline-flex items-center text-sm font-medium">
+                    Remove archived items
+                    <FieldHelp text="Only archived notifications are affected. Published notifications are never permanently deleted by cleanup." />
+                  </span>
+
+                  <select
+                    value={cleanupPeriod}
+                    onChange={(event) =>
+                      setCleanupPeriod(event.target.value)
+                    }
+                    className="h-10 min-w-52 rounded-md border bg-background px-3 text-sm"
+                  >
+                    <option value="30">Older than 30 days</option>
+                    <option value="90">Older than 90 days</option>
+                    <option value="180">Older than 6 months</option>
+                    <option value="365">Older than 1 year</option>
+                    <option value="custom">Before custom date</option>
+                  </select>
+                </label>
+
+                {cleanupPeriod === "custom" && (
+                  <label className="space-y-2">
+                    <span className="inline-flex items-center text-sm font-medium">
+                      Before date
+                    </span>
+                    <input
+                      type="date"
+                      value={cleanupDate}
+                      onChange={(event) =>
+                        setCleanupDate(event.target.value)
+                      }
+                      className="h-10 rounded-md border bg-background px-3 text-sm"
+                    />
+                  </label>
+                )}
+
+                <Button
+                  variant="destructive"
+                  onClick={handleCleanupArchived}
+                  disabled={cleanupRunning}
+                >
+                  {cleanupRunning ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="mr-2 h-4 w-4" />
+                  )}
+                  Permanently Delete
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {showComposer && (
+        <Card>
+          <CardContent className="p-6 ">
             <form
               onSubmit={handleCreateNotification}
               className="space-y-6"
@@ -410,8 +759,9 @@ export default function NotificationsPage() {
 
               <div className="grid gap-4 lg:grid-cols-2">
                 <label className="space-y-2">
-                  <span className="text-sm font-medium">
+                  <span className="inline-flex items-center text-sm font-medium">
                     Title
+                    <FieldHelp text="Short heading shown to the student in the notification list and notification details." />
                   </span>
 
                   <input
@@ -422,33 +772,32 @@ export default function NotificationsPage() {
                         title: event.target.value,
                       }))
                     }
-                    className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0"
                     placeholder="Enter notification title"
                   />
                 </label>
 
                 <label className="space-y-2">
-                  <span className="text-sm font-medium">
-                    Action URL
+                  <span className="inline-flex items-center text-sm font-medium">
+                    Action
+                    <FieldHelp text="Choose where the student should be taken after opening the notification. Select No action when the notification is informational only." />
                   </span>
-
-                  <input
+                  <select
                     value={form.actionUrl}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        actionUrl: event.target.value,
-                      }))
-                    }
-                    className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                    placeholder="/student-dashboard"
-                  />
+                    onChange={(event) => setForm((current) => ({ ...current, actionUrl: event.target.value }))}
+                    className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0"
+                  >
+                    {ACTION_OPTIONS.map((option) => (
+                      <option key={option.value || "none"} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
                 </label>
               </div>
 
               <label className="block space-y-2">
-                <span className="text-sm font-medium">
+                <span className="inline-flex items-center text-sm font-medium">
                   Message
+                  <FieldHelp text="The main notification text shown to the selected students." />
                 </span>
 
                 <textarea
@@ -460,15 +809,16 @@ export default function NotificationsPage() {
                     }))
                   }
                   rows={4}
-                  className="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full resize-none rounded-md border border-slate-200 bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0"
                   placeholder="Write the notification message..."
                 />
               </label>
 
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <label className="space-y-2">
-                  <span className="text-sm font-medium">
+                  <span className="inline-flex items-center text-sm font-medium">
                     Type
+                    <FieldHelp text="Categorizes the notification, for example assessment, attendance, material or quiz. This can be used for filtering and presentation." />
                   </span>
 
                   <select
@@ -479,7 +829,7 @@ export default function NotificationsPage() {
                         type: event.target.value,
                       }))
                     }
-                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                    className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0"
                   >
                     {TYPE_OPTIONS.map((type) => (
                       <option key={type} value={type}>
@@ -490,8 +840,9 @@ export default function NotificationsPage() {
                 </label>
 
                 <label className="space-y-2">
-                  <span className="text-sm font-medium">
+                  <span className="inline-flex items-center text-sm font-medium">
                     Priority
+                    <FieldHelp text="Indicates importance to students. This currently affects notification metadata/presentation; device push behavior will be handled separately in Phase 10." />
                   </span>
 
                   <select
@@ -502,7 +853,7 @@ export default function NotificationsPage() {
                         priority: event.target.value,
                       }))
                     }
-                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                    className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0"
                   >
                     {PRIORITY_OPTIONS.map((priority) => (
                       <option
@@ -516,8 +867,9 @@ export default function NotificationsPage() {
                 </label>
 
                 <label className="space-y-2">
-                  <span className="text-sm font-medium">
+                  <span className="inline-flex items-center text-sm font-medium">
                     Status
+                    <FieldHelp text="Publish Now immediately delivers the in-app notification. Save Draft keeps it editable and unpublished." />
                   </span>
 
                   <select
@@ -528,7 +880,7 @@ export default function NotificationsPage() {
                         status: event.target.value,
                       }))
                     }
-                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                    className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0"
                   >
                     <option value="published">
                       Publish Now
@@ -541,8 +893,9 @@ export default function NotificationsPage() {
                 </label>
 
                 <label className="space-y-2">
-                  <span className="text-sm font-medium">
+                  <span className="inline-flex items-center text-sm font-medium">
                     Expires At
+                    <FieldHelp text="Optional expiry time for time-sensitive notifications. Leave blank when the notification should not expire." />
                   </span>
 
                   <input
@@ -554,47 +907,89 @@ export default function NotificationsPage() {
                         expiresAt: event.target.value,
                       }))
                     }
-                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                    className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0"
                   />
                 </label>
               </div>
 
               <div className="rounded-xl border p-4">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                  <div className="grid flex-1 gap-4 sm:grid-cols-2">
+                  <div className="grid flex-1 gap-4 sm:grid-cols-3">
                     <label className="space-y-2">
-                      <span className="text-sm font-medium">
-                        Academic Year
+                      <span className="inline-flex items-center text-sm font-medium">
+                        Audience
+                        <FieldHelp text="Class targets one class in the selected academic year. Whole Batch loads every active student in that academic year across all classes." />
                       </span>
 
-                      <input
-                        type="number"
+                      <select
+                        value={audienceMode}
+                        onChange={(event) =>
+                          setAudienceMode(event.target.value)
+                        }
+                        className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0"
+                      >
+                        <option value="class">
+                          Single Class
+                        </option>
+                        <option value="batch">
+                          Whole Academic-Year Batch
+                        </option>
+                      </select>
+                    </label>
+
+                    <label className="space-y-2">
+                      <span className="inline-flex items-center text-sm font-medium">
+                        Academic Year
+                        <FieldHelp text="Chooses the academic-year records used to build the recipient list." />
+                      </span>
+
+                      <select
                         value={year}
                         onChange={(event) =>
                           setYear(Number(event.target.value))
                         }
-                        className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                      />
+                        className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0"
+                      >
+                        {yearOptions.map((optionYear) => (
+                          <option
+                            key={optionYear}
+                            value={optionYear}
+                          >
+                            {optionYear}
+                          </option>
+                        ))}
+                      </select>
                     </label>
 
-                    <label className="space-y-2">
-                      <span className="text-sm font-medium">
-                        Class
-                      </span>
+                    {audienceMode === "class" && (
+                      <label className="space-y-2">
+                        <span className="inline-flex items-center text-sm font-medium">
+                          Class
+                          <FieldHelp text="Limits recipients to active students in this class for the selected academic year." />
+                        </span>
 
-                      <input
-                        type="number"
-                        min="1"
-                        max="12"
-                        value={classNumber}
-                        onChange={(event) =>
-                          setClassNumber(
-                            Number(event.target.value)
-                          )
-                        }
-                        className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                      />
-                    </label>
+                        <select
+                          value={classNumber}
+                          onChange={(event) =>
+                            setClassNumber(
+                              Number(event.target.value)
+                            )
+                          }
+                          className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0"
+                        >
+                          {classOptions.map(
+                            (optionClass) => (
+                              <option
+                                key={optionClass}
+                                value={optionClass}
+                              >
+                                Class {optionClass}
+                              </option>
+                            )
+                          )}
+                        </select>
+                      </label>
+                    )}
                   </div>
 
                   <div className="flex gap-2">
@@ -624,10 +1019,13 @@ export default function NotificationsPage() {
                 </div>
 
                 <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-                  <Users className="h-4 w-4" />
+                  <Users className="h-4 w-4 accent-indigo-600 outline-none focus:ring-0" />
 
                   {selectedStudentIds.length} of{" "}
                   {students.length} students selected
+                  {audienceMode === "batch"
+                    ? ` from academic year ${year}`
+                    : ` from Class ${classNumber} · ${year}`}
                 </div>
 
                 <div className="mt-4 max-h-72 overflow-y-auto rounded-lg border">
@@ -638,7 +1036,9 @@ export default function NotificationsPage() {
                     </div>
                   ) : students.length === 0 ? (
                     <div className="p-8 text-center text-sm text-muted-foreground">
-                      No students found for this class and year.
+                      {audienceMode === "batch"
+                        ? "No active students found for this academic year."
+                        : "No active students found for this class and academic year."}
                     </div>
                   ) : (
                     students.map((student) => {
@@ -650,7 +1050,11 @@ export default function NotificationsPage() {
                       return (
                         <label
                           key={student.academicRecordId}
-                          className="flex cursor-pointer items-center gap-3 border-b px-4 py-3 last:border-b-0 hover:bg-muted/40"
+                          className={`flex cursor-pointer items-center gap-3 border-b px-4 py-3 transition-colors last:border-b-0 ${
+                            checked
+                              ? "bg-indigo-50/70"
+                              : "hover:bg-muted/40"
+                          }`}
                         >
                           <input
                             type="checkbox"
@@ -658,7 +1062,7 @@ export default function NotificationsPage() {
                             onChange={() =>
                               toggleStudent(student.studentId)
                             }
-                            className="h-4 w-4"
+                            className="h-4 w-4 accent-indigo-600 outline-none focus:ring-0"
                           />
 
                           <div className="min-w-0 flex-1">
@@ -799,36 +1203,42 @@ export default function NotificationsPage() {
                       </div>
                     </div>
 
-                    <div className="flex shrink-0 gap-2">
-                      {notification.status === "draft" && (
-                        <Button
-                          size="sm"
-                          onClick={() =>
-                            handlePublish(notification.id)
-                          }
-                          disabled={
-                            actionId === notification.id
-                          }
-                        >
-                          <Send className="mr-2 h-4 w-4" />
-                          Publish
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      <Button size="sm" variant="outline" onClick={() => openViewDialog(notification)}>
+                        <Eye className="mr-2 h-4 w-4" />View
+                      </Button>
+
+                      {notification.status === "draft" && (<>
+                        <Button size="sm" variant="outline" onClick={() => openEditDialog(notification)} disabled={actionId === notification.id}>
+                          <Pencil className="mr-2 h-4 w-4" />Edit
+                        </Button>
+                        <Button size="sm" onClick={() => handlePublish(notification.id)} disabled={actionId === notification.id}>
+                          <Send className="mr-2 h-4 w-4" />Publish
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => handleDeleteDraft(notification)} disabled={actionId === notification.id}>
+                          <Trash2 className="mr-2 h-4 w-4" />Delete
+                        </Button>
+                      </>)}
+
+                      {notification.status !== "archived" && (
+                        <Button size="sm" variant="outline" onClick={() => handleArchive(notification.id)} disabled={actionId === notification.id}>
+                          <Archive className="mr-2 h-4 w-4" />Archive
                         </Button>
                       )}
 
-                      {notification.status !==
-                        "archived" && (
+                      {notification.status === "archived" && (
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant="destructive"
                           onClick={() =>
-                            handleArchive(notification.id)
+                            handleDeleteArchived(notification)
                           }
                           disabled={
                             actionId === notification.id
                           }
                         >
-                          <Archive className="mr-2 h-4 w-4" />
-                          Archive
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete Permanently
                         </Button>
                       )}
                     </div>
@@ -839,6 +1249,63 @@ export default function NotificationsPage() {
           )}
         </CardContent>
       </Card>
+
+      {viewingNotification && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-2xl rounded-2xl border bg-background shadow-xl">
+            <div className="flex items-center justify-between border-b p-5">
+              <div><h2 className="text-lg font-semibold">Notification Details</h2><p className="mt-1 text-sm text-muted-foreground">Read-only notification information.</p></div>
+              <Button size="icon" variant="ghost" onClick={() => setViewingNotification(null)}><X className="h-4 w-4 accent-indigo-600 outline-none focus:ring-0" /></Button>
+            </div>
+            <div className="space-y-5 p-5">
+              <div className="flex flex-wrap gap-2">
+                <NotificationBadge className={STATUS_BADGES[viewingNotification.status] ?? ""}>{viewingNotification.status}</NotificationBadge>
+                <NotificationBadge className={PRIORITY_BADGES[viewingNotification.priority] ?? ""}>{viewingNotification.priority}</NotificationBadge>
+                <NotificationBadge>{viewingNotification.type}</NotificationBadge>
+              </div>
+              <div><p className="text-xs font-medium uppercase text-muted-foreground">Title</p><p className="mt-1 font-medium">{viewingNotification.title}</p></div>
+              <div><p className="text-xs font-medium uppercase text-muted-foreground">Message</p><p className="mt-1 whitespace-pre-wrap text-sm">{viewingNotification.body}</p></div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div><p className="text-xs font-medium uppercase text-muted-foreground">Action</p><p className="mt-1 break-all text-sm">{viewingNotification.actionUrl || "No action"}</p></div>
+                <div><p className="text-xs font-medium uppercase text-muted-foreground">Expires</p><p className="mt-1 text-sm">{formatDate(viewingNotification.expiresAt)}</p></div>
+                <div><p className="text-xs font-medium uppercase text-muted-foreground">Published</p><p className="mt-1 text-sm">{formatDate(viewingNotification.publishedAt)}</p></div>
+                <div><p className="text-xs font-medium uppercase text-muted-foreground">Recipients</p><p className="mt-1 text-sm">{viewingNotification.recipientCount}</p></div>
+              </div>
+            </div>
+            <div className="flex justify-end border-t p-5"><Button variant="outline" onClick={() => setViewingNotification(null)}>Close</Button></div>
+          </div>
+        </div>
+      )}
+
+      {editingNotification && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-2xl rounded-2xl border bg-background shadow-xl">
+            <form onSubmit={handleUpdateDraft}>
+              <div className="flex items-center justify-between border-b p-5">
+                <div><h2 className="text-lg font-semibold">Edit Draft Notification</h2><p className="mt-1 text-sm text-muted-foreground">Recipients remain unchanged.</p></div>
+                <Button type="button" size="icon" variant="ghost" onClick={closeEditDialog}><X className="h-4 w-4 accent-indigo-600 outline-none focus:ring-0" /></Button>
+              </div>
+              <div className="space-y-4 p-5">
+                <label className="block space-y-2"><span className="inline-flex items-center text-sm font-medium">Title</span><input value={editForm.title} onChange={(e) => setEditForm((c) => ({...c,title:e.target.value}))} className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0" /></label>
+                <label className="block space-y-2"><span className="inline-flex items-center text-sm font-medium">Message</span><textarea rows={5} value={editForm.body} onChange={(e) => setEditForm((c) => ({...c,body:e.target.value}))} className="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm" /></label>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="space-y-2"><span className="inline-flex items-center text-sm font-medium">Type</span><select value={editForm.type} onChange={(e) => setEditForm((c) => ({...c,type:e.target.value}))} className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0">{TYPE_OPTIONS.map((type) => <option key={type} value={type}>{type}</option>)}</select></label>
+                  <label className="space-y-2"><span className="inline-flex items-center text-sm font-medium">Priority</span><select value={editForm.priority} onChange={(e) => setEditForm((c) => ({...c,priority:e.target.value}))} className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0">{PRIORITY_OPTIONS.map((priority) => <option key={priority} value={priority}>{priority}</option>)}</select></label>
+                  <label className="space-y-2"><span className="inline-flex items-center text-sm font-medium">
+                    Action
+                    <FieldHelp text="Choose where the student should be taken after opening the notification. Select No action when the notification is informational only." />
+                  </span><select value={editForm.actionUrl} onChange={(e) => setEditForm((c) => ({...c,actionUrl:e.target.value}))} className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0">{ACTION_OPTIONS.map((option) => <option key={option.value || "none"} value={option.value}>{option.label}</option>)}</select></label>
+                  <label className="space-y-2"><span className="inline-flex items-center text-sm font-medium">Expires At</span><input type="datetime-local" value={editForm.expiresAt} onChange={(e) => setEditForm((c) => ({...c,expiresAt:e.target.value}))} className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0" /></label>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 border-t p-5">
+                <Button type="button" variant="outline" onClick={closeEditDialog}>Cancel</Button>
+                <Button type="submit" disabled={actionId === editingNotification.id}>{actionId === editingNotification.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save Changes</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

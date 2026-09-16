@@ -93,18 +93,12 @@ const StudyMaterialForm = () => {
         }
       );
 
-      const activeStudents = students.filter((student) => {
-        const academicStatus =
-          student.academicStatus ?? student.status;
-
-        return academicStatus === 'active';
-      });
 
       setNotificationPrompt({
         title,
         classNumber: Number(classNumber),
         isUpdate,
-        recipients: activeStudents.map((student) => ({
+        recipients: students.map((student) => ({
           studentId: student.studentId,
           academicRecordId: student.academicRecordId,
         })),

@@ -131,12 +131,25 @@ export async function loadAdminNotifications(client) {
       expires_at,
       created_at,
       updated_at,
+
       notification_recipients (
         id,
         student_id,
         student_academic_record_id,
         read_at,
-        dismissed_at
+        dismissed_at,
+
+        student:students!notification_recipients_student_fkey (
+          id,
+          student_name
+        ),
+
+        academic_record:student_academic_records!notification_recipients_academic_record_fkey (
+          id,
+          uid,
+          academic_year,
+          class
+        )
       )
     `)
     .order('created_at', { ascending: false });
@@ -144,14 +157,36 @@ export async function loadAdminNotifications(client) {
   if (error) throw error;
 
   return (data ?? []).map((row) => {
-    const recipients = row.notification_recipients ?? [];
+    const rawRecipients = row.notification_recipients ?? [];
+
+    const recipients = rawRecipients.map((recipient) => ({
+      id: recipient.id,
+
+      studentId: recipient.student_id,
+      studentName:
+        recipient.student?.student_name ?? 'Unknown Student',
+
+      academicRecordId:
+        recipient.student_academic_record_id,
+
+      uid:
+        recipient.academic_record?.uid ?? null,
+
+      class:
+        recipient.academic_record?.class ?? null,
+
+      academicYear:
+        recipient.academic_record?.academic_year ?? null,
+
+      isRead: Boolean(recipient.read_at),
+      readAt: recipient.read_at ?? null,
+
+      // Historical only — student-side dismiss has now been removed.
+      dismissedAt: recipient.dismissed_at ?? null,
+    }));
 
     const readCount = recipients.filter(
-      (recipient) => Boolean(recipient.read_at)
-    ).length;
-
-    const dismissedCount = recipients.filter(
-      (recipient) => Boolean(recipient.dismissed_at)
+      (recipient) => recipient.isRead
     ).length;
 
     return {
@@ -176,7 +211,11 @@ export async function loadAdminNotifications(client) {
       recipientCount: recipients.length,
       readCount,
       unreadCount: recipients.length - readCount,
-      dismissedCount,
+
+      // Keep temporarily for historical records.
+      dismissedCount: recipients.filter(
+        (recipient) => Boolean(recipient.dismissedAt)
+      ).length,
 
       recipients,
     };

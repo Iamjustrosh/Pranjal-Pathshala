@@ -494,7 +494,7 @@ export default function NotificationsPage() {
       console.error(err);
       setError(
         err.message ||
-          "Failed to permanently delete archived notification."
+        "Failed to permanently delete archived notification."
       );
     } finally {
       setActionId(null);
@@ -539,8 +539,7 @@ export default function NotificationsPage() {
         );
 
       window.alert(
-        `${deletedCount} archived notification${
-          deletedCount === 1 ? "" : "s"
+        `${deletedCount} archived notification${deletedCount === 1 ? "" : "s"
         } permanently deleted.`
       );
 
@@ -549,7 +548,7 @@ export default function NotificationsPage() {
       console.error(err);
       setError(
         err.message ||
-          "Failed to clean up archived notifications."
+        "Failed to clean up archived notifications."
       );
     } finally {
       setCleanupRunning(false);
@@ -569,9 +568,8 @@ export default function NotificationsPage() {
             disabled={loading}
           >
             <RefreshCcw
-              className={`mr-2 h-4 w-4 ${
-                loading ? "animate-spin" : ""
-              }`}
+              className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""
+                }`}
             />
             Refresh
           </Button>
@@ -1050,11 +1048,10 @@ export default function NotificationsPage() {
                       return (
                         <label
                           key={student.academicRecordId}
-                          className={`flex cursor-pointer items-center gap-3 border-b px-4 py-3 transition-colors last:border-b-0 ${
-                            checked
+                          className={`flex cursor-pointer items-center gap-3 border-b px-4 py-3 transition-colors last:border-b-0 ${checked
                               ? "bg-indigo-50/70"
                               : "hover:bg-muted/40"
-                          }`}
+                            }`}
                         >
                           <input
                             type="checkbox"
@@ -1148,7 +1145,7 @@ export default function NotificationsPage() {
                         <NotificationBadge
                           className={
                             STATUS_BADGES[
-                              notification.status
+                            notification.status
                             ] ?? ""
                           }
                         >
@@ -1158,7 +1155,7 @@ export default function NotificationsPage() {
                         <NotificationBadge
                           className={
                             PRIORITY_BADGES[
-                              notification.priority
+                            notification.priority
                             ] ?? ""
                           }
                         >
@@ -1251,28 +1248,292 @@ export default function NotificationsPage() {
       </Card>
 
       {viewingNotification && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl rounded-2xl border bg-background shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 py-6">
+          <div className="max-h-[95vh] w-full max-w-4xl overflow-hidden rounded-2xl border bg-background shadow-xl">
+            {/* Header */}
             <div className="flex items-center justify-between border-b p-5">
-              <div><h2 className="text-lg font-semibold">Notification Details</h2><p className="mt-1 text-sm text-muted-foreground">Read-only notification information.</p></div>
-              <Button size="icon" variant="ghost" onClick={() => setViewingNotification(null)}><X className="h-4 w-4 accent-indigo-600 outline-none focus:ring-0" /></Button>
+              <div>
+                <h2 className="text-lg font-semibold">
+                  Notification Details
+                </h2>
+
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Read-only notification information and recipient activity.
+                </p>
+              </div>
+
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setViewingNotification(null)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-            <div className="space-y-5 p-5">
+
+            {/* Scrollable content */}
+            <div className="max-h-[calc(90vh-140px)] space-y-5 overflow-y-auto p-5">
+              {/* Badges */}
               <div className="flex flex-wrap gap-2">
-                <NotificationBadge className={STATUS_BADGES[viewingNotification.status] ?? ""}>{viewingNotification.status}</NotificationBadge>
-                <NotificationBadge className={PRIORITY_BADGES[viewingNotification.priority] ?? ""}>{viewingNotification.priority}</NotificationBadge>
-                <NotificationBadge>{viewingNotification.type}</NotificationBadge>
+                <NotificationBadge
+                  className={
+                    STATUS_BADGES[viewingNotification.status] ?? ""
+                  }
+                >
+                  {viewingNotification.status}
+                </NotificationBadge>
+
+                <NotificationBadge
+                  className={
+                    PRIORITY_BADGES[viewingNotification.priority] ?? ""
+                  }
+                >
+                  {viewingNotification.priority}
+                </NotificationBadge>
+
+                <NotificationBadge>
+                  {viewingNotification.type}
+                </NotificationBadge>
               </div>
-              <div><p className="text-xs font-medium uppercase text-muted-foreground">Title</p><p className="mt-1 font-medium">{viewingNotification.title}</p></div>
-              <div><p className="text-xs font-medium uppercase text-muted-foreground">Message</p><p className="mt-1 whitespace-pre-wrap text-sm">{viewingNotification.body}</p></div>
+
+              {/* Title */}
+              <div>
+                <p className="text-xs font-medium uppercase text-muted-foreground">
+                  Title
+                </p>
+
+                <p className="mt-1 font-medium">
+                  {viewingNotification.title}
+                </p>
+              </div>
+
+              {/* Message */}
+              <div>
+                <p className="text-xs font-medium uppercase text-muted-foreground">
+                  Message
+                </p>
+
+                <p className="mt-1 whitespace-pre-wrap text-sm leading-6">
+                  {viewingNotification.body}
+                </p>
+              </div>
+
+              {/* Notification metadata */}
               <div className="grid gap-4 sm:grid-cols-2">
-                <div><p className="text-xs font-medium uppercase text-muted-foreground">Action</p><p className="mt-1 break-all text-sm">{viewingNotification.actionUrl || "No action"}</p></div>
-                <div><p className="text-xs font-medium uppercase text-muted-foreground">Expires</p><p className="mt-1 text-sm">{formatDate(viewingNotification.expiresAt)}</p></div>
-                <div><p className="text-xs font-medium uppercase text-muted-foreground">Published</p><p className="mt-1 text-sm">{formatDate(viewingNotification.publishedAt)}</p></div>
-                <div><p className="text-xs font-medium uppercase text-muted-foreground">Recipients</p><p className="mt-1 text-sm">{viewingNotification.recipientCount}</p></div>
+                <div>
+                  <p className="text-xs font-medium uppercase text-muted-foreground">
+                    Action
+                  </p>
+
+                  <p className="mt-1 break-all text-sm">
+                    {viewingNotification.actionUrl || "No action"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium uppercase text-muted-foreground">
+                    Expires
+                  </p>
+
+                  <p className="mt-1 text-sm">
+                    {formatDate(viewingNotification.expiresAt)}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium uppercase text-muted-foreground">
+                    Published
+                  </p>
+
+                  <p className="mt-1 text-sm">
+                    {formatDate(viewingNotification.publishedAt)}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium uppercase text-muted-foreground">
+                    Recipients
+                  </p>
+
+                  <p className="mt-1 text-sm">
+                    {viewingNotification.recipientCount}
+                  </p>
+                </div>
+              </div>
+
+              {/* Recipient activity */}
+              <div className="space-y-4 border-t pt-5">
+                <div>
+                  <h3 className="font-semibold">
+                    Recipient Activity
+                  </h3>
+
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    See which students have opened this notification.
+                  </p>
+                </div>
+
+                {/* Activity summary */}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  {/* Total recipients */}
+                  <div className="rounded-xl border bg-muted/30 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground">
+                          Recipients
+                        </p>
+
+                        <p className="mt-1 text-xl font-semibold">
+                          {viewingNotification.recipientCount}
+                        </p>
+                      </div>
+
+                      <Users className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                  </div>
+
+                  {/* Read */}
+                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-emerald-600">
+                          Read
+                        </p>
+
+                        <p className="mt-1 text-xl font-semibold text-emerald-700">
+                          {viewingNotification.readCount}
+                        </p>
+                      </div>
+
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                    </div>
+                  </div>
+
+                  {/* Unread */}
+                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-amber-600">
+                          Unread
+                        </p>
+
+                        <p className="mt-1 text-xl font-semibold text-amber-700">
+                          {viewingNotification.unreadCount}
+                        </p>
+                      </div>
+
+                      <Mail className="h-5 w-5 text-amber-600" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recipient list */}
+                {viewingNotification.recipients?.length > 0 ? (
+                  <div className="overflow-hidden rounded-xl border">
+                    {/* List header */}
+                    <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-3">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Students
+                      </p>
+
+                      <p className="text-xs text-muted-foreground">
+                        {viewingNotification.recipients.length} recipient
+                        {viewingNotification.recipients.length === 1
+                          ? ""
+                          : "s"}
+                      </p>
+                    </div>
+
+                    {/* Students */}
+                    <div className="max-h-80 divide-y overflow-y-auto">
+                      {viewingNotification.recipients.map(
+                        (recipient) => (
+                          <div
+                            key={recipient.id}
+                            className="flex flex-col gap-3 px-4 py-3 transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between"
+                          >
+                            {/* Student information */}
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium">
+                                {recipient.studentName}
+                              </p>
+
+                              <div className="mt-1 flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
+                                <span>
+                                  {recipient.uid || "No UID"}
+                                </span>
+
+                                {recipient.class != null && (
+                                  <>
+                                    <span>·</span>
+                                    <span>
+                                      Class {recipient.class}
+                                    </span>
+                                  </>
+                                )}
+
+                                {recipient.academicYear != null && (
+                                  <>
+                                    <span>·</span>
+                                    <span>
+                                      {recipient.academicYear}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Read status */}
+                            <div className="shrink-0 sm:text-right">
+                              {recipient.isRead ? (
+                                <>
+                                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600">
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                    Read
+                                  </span>
+
+                                  <p className="mt-1.5 text-xs text-muted-foreground">
+                                    {formatDate(recipient.readAt)}
+                                  </p>
+                                </>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-600">
+                                  <Clock3 className="h-3.5 w-3.5" />
+                                  Unread
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* No recipients */
+                  <div className="rounded-xl border border-dashed p-8 text-center">
+                    <Users className="mx-auto h-6 w-6 text-muted-foreground" />
+
+                    <p className="mt-2 text-sm font-medium">
+                      No recipients
+                    </p>
+
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      No students are attached to this notification.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
-            <div className="flex justify-end border-t p-5"><Button variant="outline" onClick={() => setViewingNotification(null)}>Close</Button></div>
+
+            {/* Footer */}
+            <div className="flex justify-end border-t bg-background p-5">
+              <Button
+                variant="outline"
+                onClick={() => setViewingNotification(null)}
+              >
+                Close
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -1286,16 +1547,16 @@ export default function NotificationsPage() {
                 <Button type="button" size="icon" variant="ghost" onClick={closeEditDialog}><X className="h-4 w-4 accent-indigo-600 outline-none focus:ring-0" /></Button>
               </div>
               <div className="space-y-4 p-5">
-                <label className="block space-y-2"><span className="inline-flex items-center text-sm font-medium">Title</span><input value={editForm.title} onChange={(e) => setEditForm((c) => ({...c,title:e.target.value}))} className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0" /></label>
-                <label className="block space-y-2"><span className="inline-flex items-center text-sm font-medium">Message</span><textarea rows={5} value={editForm.body} onChange={(e) => setEditForm((c) => ({...c,body:e.target.value}))} className="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm" /></label>
+                <label className="block space-y-2"><span className="inline-flex items-center text-sm font-medium">Title</span><input value={editForm.title} onChange={(e) => setEditForm((c) => ({ ...c, title: e.target.value }))} className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0" /></label>
+                <label className="block space-y-2"><span className="inline-flex items-center text-sm font-medium">Message</span><textarea rows={5} value={editForm.body} onChange={(e) => setEditForm((c) => ({ ...c, body: e.target.value }))} className="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm" /></label>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="space-y-2"><span className="inline-flex items-center text-sm font-medium">Type</span><select value={editForm.type} onChange={(e) => setEditForm((c) => ({...c,type:e.target.value}))} className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0">{TYPE_OPTIONS.map((type) => <option key={type} value={type}>{type}</option>)}</select></label>
-                  <label className="space-y-2"><span className="inline-flex items-center text-sm font-medium">Priority</span><select value={editForm.priority} onChange={(e) => setEditForm((c) => ({...c,priority:e.target.value}))} className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0">{PRIORITY_OPTIONS.map((priority) => <option key={priority} value={priority}>{priority}</option>)}</select></label>
+                  <label className="space-y-2"><span className="inline-flex items-center text-sm font-medium">Type</span><select value={editForm.type} onChange={(e) => setEditForm((c) => ({ ...c, type: e.target.value }))} className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0">{TYPE_OPTIONS.map((type) => <option key={type} value={type}>{type}</option>)}</select></label>
+                  <label className="space-y-2"><span className="inline-flex items-center text-sm font-medium">Priority</span><select value={editForm.priority} onChange={(e) => setEditForm((c) => ({ ...c, priority: e.target.value }))} className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0">{PRIORITY_OPTIONS.map((priority) => <option key={priority} value={priority}>{priority}</option>)}</select></label>
                   <label className="space-y-2"><span className="inline-flex items-center text-sm font-medium">
                     Action
                     <FieldHelp text="Choose where the student should be taken after opening the notification. Select No action when the notification is informational only." />
-                  </span><select value={editForm.actionUrl} onChange={(e) => setEditForm((c) => ({...c,actionUrl:e.target.value}))} className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0">{ACTION_OPTIONS.map((option) => <option key={option.value || "none"} value={option.value}>{option.label}</option>)}</select></label>
-                  <label className="space-y-2"><span className="inline-flex items-center text-sm font-medium">Expires At</span><input type="datetime-local" value={editForm.expiresAt} onChange={(e) => setEditForm((c) => ({...c,expiresAt:e.target.value}))} className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0" /></label>
+                  </span><select value={editForm.actionUrl} onChange={(e) => setEditForm((c) => ({ ...c, actionUrl: e.target.value }))} className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0">{ACTION_OPTIONS.map((option) => <option key={option.value || "none"} value={option.value}>{option.label}</option>)}</select></label>
+                  <label className="space-y-2"><span className="inline-flex items-center text-sm font-medium">Expires At</span><input type="datetime-local" value={editForm.expiresAt} onChange={(e) => setEditForm((c) => ({ ...c, expiresAt: e.target.value }))} className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-0" /></label>
                 </div>
               </div>
               <div className="flex justify-end gap-2 border-t p-5">

@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 
 import {
   RiArrowLeftLine,
-  RiCheckDoubleLine,
-  RiCloseLine,
   RiErrorWarningLine,
   RiExternalLinkLine,
   RiInformationLine,
@@ -15,11 +13,15 @@ import {
 import { supabase } from '../supabaseClient';
 
 import {
-  dismissNotification,
   getUnreadNotificationCount,
   loadStudentNotifications,
   markNotificationRead,
 } from '../services/notifications';
+
+
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
 
 const TYPE_LABELS = {
   general: 'General',
@@ -32,27 +34,6 @@ const TYPE_LABELS = {
   system: 'System',
 };
 
-const PRIORITY_STYLES = {
-  low: {
-    badge: 'bg-slate-100 text-slate-500',
-    border: 'border-slate-100',
-  },
-
-  normal: {
-    badge: 'bg-indigo-50 text-indigo-600',
-    border: 'border-indigo-100',
-  },
-
-  high: {
-    badge: 'bg-amber-50 text-amber-600',
-    border: 'border-amber-100',
-  },
-
-  urgent: {
-    badge: 'bg-red-50 text-red-600',
-    border: 'border-red-100',
-  },
-};
 
 function formatDate(value) {
   if (!value) return '';
@@ -79,6 +60,31 @@ function getNotificationIcon(type) {
   }
 }
 
+function getNotificationPreview(body = '') {
+  return String(body)
+    // Images -> alt text
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+
+    // Markdown links -> link text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+
+    // Remove bold / italic / strike / inline code markers
+    .replace(/[*_~`]/g, '')
+
+    // Remove headings / blockquotes
+    .replace(/^\s*[#>]+\s*/gm, '')
+
+    // Remove list markers
+    .replace(/^\s*[-+]\s+/gm, '')
+
+    // Turn line breaks into spaces for compact preview
+    .replace(/\n+/g, ' ')
+
+    // Normalize whitespace
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export default function StudentNotifications() {
   const navigate = useNavigate();
 
@@ -87,6 +93,10 @@ export default function StudentNotifications() {
   const [refreshing, setRefreshing] = useState(false);
   const [actionId, setActionId] = useState(null);
   const [error, setError] = useState('');
+
+  const [selectedNotification, setSelectedNotification] = useState(null);
+  const [filter, setFilter] = useState('all');
+
 
   const loadNotifications = useCallback(async (manual = false) => {
     try {
@@ -109,7 +119,7 @@ export default function StudentNotifications() {
 
       setError(
         err?.message ||
-          'Unable to load notifications right now.'
+        'Unable to load notifications right now.'
       );
     } finally {
       setLoading(false);
@@ -141,10 +151,10 @@ export default function StudentNotifications() {
         current.map((item) =>
           item.notificationId === notification.notificationId
             ? {
-                ...item,
-                isRead: true,
-                readAt: new Date().toISOString(),
-              }
+              ...item,
+              isRead: true,
+              readAt: new Date().toISOString(),
+            }
             : item
         )
       );
@@ -156,55 +166,38 @@ export default function StudentNotifications() {
 
       setError(
         err?.message ||
-          'Unable to update notification.'
+        'Unable to update notification.'
       );
     } finally {
       setActionId(null);
     }
   };
 
-  const handleDismiss = async (notification) => {
-    try {
-      setActionId(notification.notificationId);
-      setError('');
 
-      await dismissNotification(
-        supabase,
-        notification.notificationId
-      );
+  const handleViewNotification = async (notification) => {
+    setSelectedNotification(notification);
 
-      setNotifications((current) =>
-        current.filter(
-          (item) =>
-            item.notificationId !==
-            notification.notificationId
-        )
-      );
-    } catch (err) {
-      console.error(
-        'Failed to dismiss notification:',
-        err
-      );
+    if (!notification.isRead) {
+      await handleMarkRead(notification);
 
-      setError(
-        err?.message ||
-          'Unable to dismiss notification.'
+      setSelectedNotification((current) =>
+        current?.notificationId === notification.notificationId
+          ? {
+            ...current,
+            isRead: true,
+            readAt: new Date().toISOString(),
+          }
+          : current
       );
-    } finally {
-      setActionId(null);
     }
   };
 
-  const handleOpenNotification = async (notification) => {
-    await handleMarkRead(notification);
-
-    if (!notification.actionUrl) return;
+  const handleNotificationAction = (notification) => {
+    if (!notification?.actionUrl) return;
 
     if (
       notification.actionUrl.startsWith('/') ||
-      notification.actionUrl.startsWith(
-        window.location.origin
-      )
+      notification.actionUrl.startsWith(window.location.origin)
     ) {
       const target = notification.actionUrl.replace(
         window.location.origin,
@@ -222,40 +215,53 @@ export default function StudentNotifications() {
     );
   };
 
+
+  const filteredNotifications = useMemo(() => {
+    if (filter === 'unread') {
+      return notifications.filter((item) => !item.isRead);
+    }
+
+    if (filter === 'read') {
+      return notifications.filter((item) => item.isRead);
+    }
+
+    return notifications;
+  }, [notifications, filter]);
+
   return (
     <div className="min-h-screen bg-slate-200 sm:flex sm:justify-center">
       <div
         className="
-          min-h-[100dvh] w-full bg-slate-50
-          sm:my-4
-          sm:min-h-[calc(100dvh-32px)]
-          sm:max-w-[500px]
-          sm:rounded-[32px]
-          sm:border
-          sm:border-white/70
-          sm:shadow-2xl
-          sm:shadow-slate-400/20
-          overflow-hidden
-        "
+        min-h-[100dvh] w-full bg-slate-50
+        sm:my-4
+        sm:min-h-[calc(100dvh-32px)]
+        sm:max-w-[500px]
+        sm:rounded-[32px]
+        sm:border
+        sm:border-white/70
+        sm:shadow-2xl
+        sm:shadow-slate-400/20
+        overflow-hidden
+      "
       >
+        {/* Header */}
         <header
           className="
-            sticky top-0 z-30
-            border-b border-slate-100
-            bg-white/95 backdrop-blur-xl
-          "
+          sticky top-0 z-30
+          border-b border-slate-100
+          bg-white/95 backdrop-blur-xl
+        "
         >
           <div className="flex items-center gap-3 px-4 py-3">
             <button
               type="button"
-              onClick={() =>
-                navigate('/student-dashboard')
-              }
+              onClick={() => navigate('/student-dashboard')}
               className="
-                flex h-10 w-10 items-center justify-center
-                rounded-xl bg-slate-50 text-slate-600
-                transition hover:bg-slate-100
-              "
+              flex h-10 w-10 items-center justify-center
+              rounded-xl bg-slate-50 text-slate-600
+              transition hover:bg-slate-100
+            "
+              aria-label="Back to dashboard"
             >
               <RiArrowLeftLine size={20} />
             </button>
@@ -269,10 +275,10 @@ export default function StudentNotifications() {
                 {unreadCount > 0 && (
                   <span
                     className="
-                      rounded-full bg-indigo-600
-                      px-2 py-0.5 text-[10px]
-                      font-bold text-white
-                    "
+                    rounded-full bg-indigo-600
+                    px-2 py-0.5
+                    text-[10px] font-bold text-white
+                  "
                   >
                     {unreadCount}
                   </span>
@@ -289,51 +295,53 @@ export default function StudentNotifications() {
               onClick={() => loadNotifications(true)}
               disabled={refreshing}
               className="
-                flex h-10 w-10 items-center justify-center
-                rounded-xl bg-slate-50 text-slate-500
-                transition hover:bg-indigo-50
-                hover:text-indigo-600
-                disabled:opacity-50
-              "
+              flex h-10 w-10 items-center justify-center
+              rounded-xl bg-slate-50 text-slate-500
+              transition
+              hover:bg-indigo-50 hover:text-indigo-600
+              disabled:opacity-50
+            "
               aria-label="Refresh notifications"
             >
               <RiRefreshLine
                 size={18}
-                className={
-                  refreshing ? 'animate-spin' : ''
-                }
+                className={refreshing ? 'animate-spin' : ''}
               />
             </button>
           </div>
         </header>
 
+        {/* Main */}
         <main className="px-4 py-5">
+          {/* Error */}
           {error && (
             <div
               className="
-                mb-4 rounded-2xl border
-                border-red-100 bg-red-50
-                px-4 py-3 text-sm text-red-600
-              "
+              mb-4 rounded-2xl border
+              border-red-100 bg-red-50
+              px-4 py-3
+              text-sm text-red-600
+            "
             >
               {error}
             </div>
           )}
 
+          {/* Loading */}
           {loading ? (
             <div
               className="
-                flex min-h-[60vh]
-                flex-col items-center justify-center
-                text-slate-400
-              "
+              flex min-h-[60vh]
+              flex-col items-center justify-center
+              text-slate-400
+            "
             >
               <div
                 className="
-                  h-8 w-8 animate-spin rounded-full
-                  border-4 border-slate-200
-                  border-t-indigo-500
-                "
+                h-8 w-8 animate-spin rounded-full
+                border-4 border-slate-200
+                border-t-indigo-500
+              "
               />
 
               <p className="mt-3 text-sm font-medium">
@@ -341,19 +349,20 @@ export default function StudentNotifications() {
               </p>
             </div>
           ) : notifications.length === 0 ? (
+            /* Empty state */
             <div
               className="
-                flex min-h-[65vh]
-                flex-col items-center justify-center
-                px-6 text-center
-              "
+              flex min-h-[65vh]
+              flex-col items-center justify-center
+              px-6 text-center
+            "
             >
               <div
                 className="
-                  flex h-16 w-16 items-center justify-center
-                  rounded-3xl bg-indigo-50
-                  text-indigo-600
-                "
+                flex h-16 w-16 items-center justify-center
+                rounded-3xl bg-indigo-50
+                text-indigo-600
+              "
               >
                 <RiNotification3Line size={28} />
               </div>
@@ -363,184 +372,489 @@ export default function StudentNotifications() {
               </h2>
 
               <p className="mt-2 max-w-xs text-sm leading-6 text-slate-400">
-                Updates about results, quizzes, study
-                materials, attendance, announcements and
-                other student activities will appear here.
+                Updates about results, quizzes, study materials,
+                attendance, announcements and other student activities
+                will appear here.
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {notifications.map((notification) => {
-                const Icon = getNotificationIcon(
-                  notification.type
-                );
-
-                const priority =
-                  PRIORITY_STYLES[
-                    notification.priority
-                  ] ?? PRIORITY_STYLES.normal;
-
-                const busy =
-                  actionId === notification.notificationId;
-
-                return (
-                  <article
-                    key={notification.recipientId}
-                    className={`
-                      relative overflow-hidden
-                      rounded-3xl border bg-white
-                      p-4 shadow-sm
-                      ${priority.border}
-                      ${
-                        notification.isRead
-                          ? 'opacity-80'
-                          : ''
-                      }
-                    `}
-                  >
-                    {!notification.isRead && (
-                      <span
-                        className="
-                          absolute right-4 top-4
-                          h-2.5 w-2.5 rounded-full
-                          bg-indigo-500
-                        "
-                      />
-                    )}
-
-                    <div className="flex gap-3">
-                      <div
-                        className="
-                          flex h-11 w-11 shrink-0
-                          items-center justify-center
-                          rounded-2xl bg-indigo-50
-                          text-indigo-600
-                        "
-                      >
-                        <Icon size={20} />
-                      </div>
-
-                      <div className="min-w-0 flex-1 pr-4">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className="
-                              rounded-full bg-slate-100
-                              px-2 py-1 text-[10px]
-                              font-semibold text-slate-500
-                            "
-                          >
-                            {TYPE_LABELS[
-                              notification.type
-                            ] ?? notification.type}
-                          </span>
-
-                          <span
-                            className={`
-                              rounded-full px-2 py-1
-                              text-[10px] font-semibold
-                              capitalize
-                              ${priority.badge}
-                            `}
-                          >
-                            {notification.priority}
-                          </span>
-                        </div>
-
-                        <h2 className="mt-2 text-sm font-bold leading-5 text-slate-900">
-                          {notification.title}
-                        </h2>
-
-                        <p className="mt-1 text-sm leading-6 text-slate-500">
-                          {notification.body}
-                        </p>
-
-                        <p className="mt-3 text-[10px] text-slate-400">
-                          {formatDate(
-                            notification.publishedAt ??
-                              notification.createdAt
-                          )}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div
-                      className="
-                        mt-4 flex flex-wrap items-center
-                        justify-between gap-2
-                        border-t border-slate-100 pt-3
-                      "
-                    >
-                      <div className="flex gap-2">
-                        {!notification.isRead && (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() =>
-                              handleMarkRead(notification)
-                            }
-                            className="
-                              flex items-center gap-1.5
-                              rounded-xl bg-indigo-50
-                              px-3 py-2 text-xs
-                              font-semibold text-indigo-600
-                              transition hover:bg-indigo-100
-                              disabled:opacity-50
-                            "
-                          >
-                            <RiCheckDoubleLine size={15} />
-                            Mark read
-                          </button>
-                        )}
-
-                        {notification.actionUrl && (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() =>
-                              handleOpenNotification(
-                                notification
-                              )
-                            }
-                            className="
-                              flex items-center gap-1.5
-                              rounded-xl bg-slate-100
-                              px-3 py-2 text-xs
-                              font-semibold text-slate-600
-                              transition hover:bg-slate-200
-                              disabled:opacity-50
-                            "
-                          >
-                            <RiExternalLinkLine size={14} />
-                            Open
-                          </button>
-                        )}
-                      </div>
-
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() =>
-                          handleDismiss(notification)
+            <>
+              {/* Filter tabs */}
+              <div className="mb-4 rounded-xl bg-slate-100 p-1">
+                <div className="grid grid-cols-3 gap-1">
+                  {[
+                    {
+                      value: 'all',
+                      label: 'All',
+                    },
+                    {
+                      value: 'unread',
+                      label: `Unread (${unreadCount})`,
+                    },
+                    {
+                      value: 'read',
+                      label: 'Read',
+                    },
+                  ].map((item) => (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => setFilter(item.value)}
+                      className={`
+                      rounded-lg px-3 py-2
+                      text-xs font-semibold
+                      transition
+                      ${filter === item.value
+                          ? 'bg-white text-indigo-600 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-600'
                         }
-                        className="
-                          flex h-9 w-9 items-center
-                          justify-center rounded-xl
-                          text-slate-400 transition
-                          hover:bg-red-50 hover:text-red-500
-                          disabled:opacity-50
-                        "
-                        aria-label="Dismiss notification"
-                      >
-                        <RiCloseLine size={18} />
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
+                    `}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Notification list */}
+              <div
+                className="
+                overflow-hidden rounded-2xl
+                border border-slate-100
+                bg-white shadow-sm
+              "
+              >
+                {filteredNotifications.length === 0 ? (
+                  <div className="px-5 py-12 text-center">
+                    <RiNotification3Line
+                      size={26}
+                      className="mx-auto text-indigo-300"
+                    />
+
+                    <p className="mt-3 text-sm font-semibold text-slate-700">
+                      {filter === 'unread'
+                        ? 'No unread notifications'
+                        : filter === 'read'
+                          ? 'No read notifications'
+                          : 'No notifications'}
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-400">
+                      {filter === 'unread'
+                        ? "You're all caught up."
+                        : 'Nothing to show here yet.'}
+                    </p>
+                  </div>
+                ) : (
+                  filteredNotifications.map(
+                    (notification, index) => {
+                      const Icon = getNotificationIcon(
+                        notification.type
+                      );
+
+                      const isLong =
+                        String(notification.body ?? '').length > 100;
+
+                      return (
+                        <article
+                          key={notification.recipientId}
+                          onClick={() =>
+                            handleViewNotification(notification)
+                          }
+                          className={`
+                          group relative cursor-pointer
+                          px-4 py-4
+                          transition-colors duration-150
+                          hover:bg-slate-50
+                          ${!notification.isRead
+                              ? 'bg-indigo-50/40'
+                              : 'bg-white'
+                            }
+                          ${index !==
+                              filteredNotifications.length - 1
+                              ? 'border-b border-slate-100'
+                              : ''
+                            }
+                        `}
+                        >
+                          <div className="flex items-start gap-3">
+                            {/* Icon */}
+                            <div
+                              className={`
+                              flex h-10 w-10 shrink-0
+                              items-center justify-center
+                              rounded-full border
+                              ${notification.isRead
+                                  ? `
+                                    border-slate-200
+                                    bg-white
+                                    text-slate-400
+                                  `
+                                  : `
+                                    border-indigo-100
+                                    bg-indigo-50
+                                    text-indigo-600
+                                  `
+                                }
+                            `}
+                            >
+                              <Icon size={17} />
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              {/* Title + date */}
+                              <div className="flex items-start gap-3">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2">
+                                    {!notification.isRead && (
+                                      <span
+                                        className="
+                                        h-1.5 w-1.5 shrink-0
+                                        rounded-full bg-indigo-500
+                                      "
+                                      />
+                                    )}
+
+                                    <h2
+                                      className={`
+                                      truncate text-sm
+                                      text-slate-900
+                                      ${notification.isRead
+                                          ? 'font-semibold'
+                                          : 'font-bold'
+                                        }
+                                    `}
+                                    >
+                                      {notification.title}
+                                    </h2>
+                                  </div>
+                                </div>
+
+                                <span
+                                  className="
+                                  shrink-0 whitespace-nowrap
+                                  text-[10px] text-slate-400
+                                "
+                                >
+                                  {formatDate(
+                                    notification.publishedAt ??
+                                    notification.createdAt
+                                  )}
+                                </span>
+                              </div>
+
+                              {/* Preview */}
+                              <div className="break-words text-sm leading-7 text-slate-600">
+                                {/* Preview */}
+                                <p
+                                  className="
+    mt-1 line-clamp-2
+    text-xs leading-5
+    text-slate-500
+  "
+                                >
+                                  {getNotificationPreview(notification.body)}
+                                </p>
+                              </div>
+
+                              {/* Read more */}
+                              {isLong && (
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+
+                                    handleViewNotification(
+                                      notification
+                                    );
+                                  }}
+                                  className="
+                                  mt-1 text-[11px]
+                                  font-semibold text-indigo-600
+                                  transition hover:text-indigo-700
+                                "
+                                >
+                                  Read more
+                                </button>
+                              )}
+
+                              {/* Type */}
+                              <div className="mt-2 flex items-center justify-between gap-3">
+                                <span
+                                  className="
+                                  text-[9px] font-semibold
+                                  uppercase tracking-wider
+                                  text-slate-400
+                                "
+                                >
+                                  {TYPE_LABELS[
+                                    notification.type
+                                  ] ?? notification.type}
+                                </span>
+
+                                <span
+                                  className="
+                                  text-[11px] font-semibold
+                                  text-indigo-500
+                                  opacity-0 transition
+                                  group-hover:opacity-100
+                                "
+                                >
+                                  View
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    }
+                  )
+                )}
+              </div>
+            </>
           )}
         </main>
       </div>
+
+      {/* Full notification modal */}
+      {selectedNotification && (
+        <div
+          className="
+          fixed inset-0 z-50
+          flex items-end justify-center
+          bg-slate-950/30
+          backdrop-blur-[2px]
+          sm:items-center
+          sm:px-4
+        "
+          onClick={() => setSelectedNotification(null)}
+        >
+          <div
+            className="
+            flex max-h-[88dvh] w-full
+            flex-col overflow-hidden
+            rounded-t-[28px]
+            bg-white shadow-2xl
+            sm:max-w-[460px]
+            sm:rounded-[28px]
+          "
+            onClick={(event) => event.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div
+              className="
+              flex shrink-0 items-center
+              justify-between gap-4
+              border-b border-slate-100
+              bg-white px-5 py-4
+            "
+            >
+              <span
+                className="
+                text-[10px] font-bold
+                uppercase tracking-wider
+                text-indigo-600
+              "
+              >
+                {TYPE_LABELS[selectedNotification.type] ??
+                  selectedNotification.type}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setSelectedNotification(null)}
+                className="
+                flex h-8 w-8 items-center
+                justify-center rounded-full
+                bg-slate-100 text-lg
+                text-slate-500 transition
+                hover:bg-slate-200
+              "
+                aria-label="Close notification"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Modal content */}
+            <div className="flex-1 overflow-y-auto px-5 py-6">
+              <div
+                className="
+                flex h-12 w-12
+                items-center justify-center
+                rounded-2xl bg-indigo-50
+                text-indigo-600
+              "
+              >
+                {(() => {
+                  const Icon = getNotificationIcon(
+                    selectedNotification.type
+                  );
+
+                  return <Icon size={21} />;
+                })()}
+              </div>
+
+              <h2
+                className="
+                mt-4 text-xl font-bold
+                leading-7 text-slate-900
+              "
+              >
+                {selectedNotification.title}
+              </h2>
+
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="text-xs text-slate-400">
+                  {formatDate(
+                    selectedNotification.publishedAt ??
+                    selectedNotification.createdAt
+                  )}
+                </span>
+
+                {selectedNotification.priority &&
+                  selectedNotification.priority !== 'normal' && (
+                    <>
+                      <span className="text-slate-300">•</span>
+
+                      <span
+                        className="
+                        text-[10px] font-semibold
+                        uppercase tracking-wide
+                        text-indigo-500
+                      "
+                      >
+                        {selectedNotification.priority}
+                      </span>
+                    </>
+                  )}
+              </div>
+
+              <div className="my-5 border-t border-slate-100" />
+
+              {/* Exact admin-entered formatting */}
+              {/* Markdown notification body */}
+              <div className="break-words text-sm leading-7 text-slate-600">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    p: ({ children }) => (
+                      <p className="mb-3 last:mb-0">
+                        {children}
+                      </p>
+                    ),
+
+                    strong: ({ children }) => (
+                      <strong className="font-bold text-slate-900">
+                        {children}
+                      </strong>
+                    ),
+
+                    em: ({ children }) => (
+                      <em className="italic">
+                        {children}
+                      </em>
+                    ),
+
+                    ul: ({ children }) => (
+                      <ul className="my-3 list-disc space-y-1 pl-5">
+                        {children}
+                      </ul>
+                    ),
+
+                    ol: ({ children }) => (
+                      <ol className="my-3 list-decimal space-y-1 pl-5">
+                        {children}
+                      </ol>
+                    ),
+
+                    li: ({ children }) => (
+                      <li>{children}</li>
+                    ),
+
+                    a: ({ href, children }) => (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="
+            font-medium text-indigo-600
+            underline underline-offset-2
+          "
+                      >
+                        {children}
+                      </a>
+                    ),
+
+                    h1: ({ children }) => (
+                      <h3 className="mb-2 mt-4 text-lg font-bold text-slate-900">
+                        {children}
+                      </h3>
+                    ),
+
+                    h2: ({ children }) => (
+                      <h3 className="mb-2 mt-4 text-base font-bold text-slate-900">
+                        {children}
+                      </h3>
+                    ),
+
+                    h3: ({ children }) => (
+                      <h3 className="mb-2 mt-3 text-sm font-bold text-slate-900">
+                        {children}
+                      </h3>
+                    ),
+
+                    blockquote: ({ children }) => (
+                      <blockquote className="my-3 border-l-2 border-indigo-300 pl-3 text-slate-500">
+                        {children}
+                      </blockquote>
+                    ),
+
+                    code: ({ children }) => (
+                      <code className="rounded bg-slate-100 px-1 py-0.5 text-xs text-slate-700">
+                        {children}
+                      </code>
+                    ),
+                  }}
+                >
+                  {selectedNotification.body ?? ''}
+                </ReactMarkdown>
+              </div>
+            </div>
+
+            {/* Action */}
+            {selectedNotification.actionUrl && (
+              <div
+                className="
+                shrink-0 border-t
+                border-slate-100
+                bg-white p-4
+              "
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleNotificationAction(
+                      selectedNotification
+                    )
+                  }
+                  className="
+                  flex w-full items-center
+                  justify-center gap-2
+                  rounded-xl bg-indigo-600
+                  px-4 py-3
+                  text-sm font-semibold text-white
+                  transition hover:bg-indigo-700
+                "
+                >
+                  Open
+                  <RiExternalLinkLine size={16} />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

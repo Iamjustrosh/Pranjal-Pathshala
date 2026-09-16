@@ -233,7 +233,7 @@ export default function StudentHeader({
 
                     <div className="my-1 border-t border-slate-100" />
 
-                    <button
+                    {/* <button
                       type="button"
                       className="
                         flex w-full items-center
@@ -244,7 +244,7 @@ export default function StudentHeader({
                     >
                       <RiUserLine />
                       Profile
-                    </button>
+                    </button> */}
 
 
                     {/* PUSH NOTIFICATION */}

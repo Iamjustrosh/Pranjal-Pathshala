@@ -7,6 +7,13 @@ import sandclock from '../assets/sand-clock.png'
 import Testimonial from '../components/Testimonial'
 import { Link } from 'react-router-dom'
 import { Target, FlaskConical, TrendingUp, Users, Zap, Trophy, Bot } from 'lucide-react'
+import {
+  ChatbotPreview,
+  LabsPreview,
+  StudyMaterialPreview,
+  ProgressPreview,
+  QuizzesPreview,
+} from '../components/home/PhoneMockupPreviews'
 
 const featureCards = [
   {
@@ -56,8 +63,7 @@ const keyFeatures = [
     description: "Get instant help from a personalized AI Assistant for all your doubts.",
     color: "from-orange-500 to-red-600",
     benefits: ["Doubt Solving", "24/7 Support", "Easy Learning"],
-    // Replace with your actual screenshot import
-    screenshot: "/pic5.png",
+    previewComponent: ChatbotPreview,
   },
   {
     id: "labs",
@@ -66,7 +72,7 @@ const keyFeatures = [
     description: "Explore interactive science experiments and understand concepts by seeing and doing.",
     color: "from-blue-500 to-cyan-600",
     benefits: ["Interactive Experiments", "Physics Concepts", "Learn by Doing"],
-    screenshot: "/labs.png",
+    previewComponent: LabsPreview,
   },
   {
     id: "material",
@@ -75,8 +81,7 @@ const keyFeatures = [
     description: "Get specially curated study material for your class and subjects.",
     color: "from-purple-500 to-pink-600",
     benefits: ["Class-wise Content", "Subject Notes", "Expert Curated"],
-    // Replace with your actual screenshot import
-    screenshot: "/pic2.jpeg",
+    previewComponent: StudyMaterialPreview,
   },
   {
     id: "progress",
@@ -85,8 +90,7 @@ const keyFeatures = [
     description: "View your overall progress report with test marks, quiz scores, and attendance.",
     color: "from-green-500 to-emerald-600",
     benefits: ["Test Marks", "Quiz Scores", "Attendance Report"],
-    // Replace with your actual screenshot import
-    screenshot: "/pic3.jpeg",
+    previewComponent: ProgressPreview,
   },
   {
     id: "quizzes",
@@ -95,8 +99,7 @@ const keyFeatures = [
     description: "Access active quizzes and tests organized by class and subject in the student panel.",
     color: "from-orange-500 to-red-600",
     benefits: ["Active Quizzes", "Subject Tests", "Instant Results"],
-    // Replace with your actual screenshot import
-    screenshot: "/pic4.jpeg",
+    previewComponent: QuizzesPreview,
   },
   
 ];
@@ -190,42 +193,21 @@ const Home = () => {
             {/* ── Phone Mockup ── */}
             <div className="relative flex justify-center">
               <div className="relative w-80 h-[600px] bg-gray-900 rounded-[3rem] p-2 shadow-2xl">
-                <div className="w-full h-full bg-white rounded-[2.5rem] overflow-hidden relative">
-                  
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 p-4 flex flex-col">
-
-                    {/* Status Bar */}
-                    <div className="flex justify-between items-center mb-4 text-xs text-gray-600 flex-shrink-0 pt-2 px-2">
-                      <span>9:41</span>
-                      <div className="flex space-x-1">
-                        <div className="w-4 h-2 bg-green-500 rounded-sm"></div>
-                        <div className="w-4 h-2 bg-gray-300 rounded-sm"></div>
-                        <div className="w-4 h-2 bg-gray-300 rounded-sm"></div>
+                <div className="w-full h-full bg-slate-50 rounded-[2.5rem] overflow-hidden relative">
+                  {keyFeatures.map((feature) => (
+                    <div
+                      key={feature.id}
+                      className={`absolute inset-0 w-full h-full transition-opacity duration-500 ${
+                        activeTab === feature.id ? "opacity-100 z-10" : "opacity-0 z-0"
+                      }`}
+                    >
+                      <div
+                        className="pointer-events-none select-none w-full h-full overflow-y-auto overflow-x-hidden pt-6 px-3 pb-3"
+                      >
+                        {activeTab === feature.id && <feature.previewComponent />}
                       </div>
                     </div>
-
-                    {/* App Header */}
-
-
-                    {/* Feature Content (Screenshots Based on Active Tab) */}
-                    <div className="flex-1 w-full bg-white rounded-2xl shadow-sm border border-white/60 overflow-hidden relative">
-                      {keyFeatures.map((feature) => (
-                        <div
-                          key={feature.id}
-                          className={`absolute inset-0 w-full h-full transition-opacity duration-500 ${
-                            activeTab === feature.id ? "opacity-100 z-10" : "opacity-0 z-0"
-                          }`}
-                        >
-                          <img 
-                            src={feature.screenshot} 
-                            alt={feature.title} 
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      ))}
-                    </div>
-
-                  </div>
+                  ))}
                 </div>
               </div>
 

@@ -64,7 +64,7 @@ const LABS = [
 ];
 
 /* ─── Index page ─── */
-function LabsIndex({ onSelect }) {
+export function LabsIndex({ onSelect }) {
   return (
     <div className="min-h-screen bg-[#f4f8fd]">
       <div className="mx-auto max-w-[1080px] px-4 pb-20 pt-8">
